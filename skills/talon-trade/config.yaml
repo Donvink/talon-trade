@@ -1,0 +1,24 @@
+# 风控参数
+risk:
+  max_order_value: 10000
+  max_order_shares: 500
+  daily_loss_limit: 2000
+  max_position_pct: 20
+  max_open_positions: 10
+  stop_loss_pct: -10
+  take_profit_pct: 30
+  trailing_stop_pct: 10
+  max_hold_days: 25
+  min_hold_days: 3
+  use_macd_sell: false
+
+# 选股参数
+screener:
+  rps_threshold: 85
+  rps_periods: [20, 60, 120]
+  max_buy: 3
+  use_fundamentals: false
+
+# 数据源
+data_source: "yfinance"   # 或 "polygon"
+polygon_api_key: ""       # 用户可填写
