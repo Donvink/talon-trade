@@ -10,12 +10,19 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 
-# 添加脚本目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
+# 添加 scripts 目录到路径（允许直接运行）
+def setup_path():
+    # 当前文件: scripts/analysis/generate_report.py
+    # scripts 目录: 向上两级
+    scripts_dir = Path(__file__).parent.parent
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
 
-from backtest import backtest
-from stock_pool import get_sp500_symbols
-from config import LOG_DIR
+setup_path()
+
+from analysis.backtest import backtest
+from core.stock_pool import get_sp500_symbols
+from core.config import LOG_DIR
 
 def calculate_daily_returns(nav_series):
     """计算日收益率序列"""

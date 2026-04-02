@@ -11,12 +11,9 @@ import numpy as np
 from pathlib import Path
 from joblib import Parallel, delayed
 
-# 添加脚本目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
-
 from backtest import backtest
-from stock_pool import get_sp500_symbols
-from config import DATA_ROOT
+from core.stock_pool import get_sp500_symbols
+from core.config import CACHE_DIR
 
 STOCK_POOL = get_sp500_symbols()[:30]
 
@@ -95,7 +92,7 @@ def main():
     print(df_results.head(10))
     
     # 保存全部结果
-    output_path = DATA_ROOT / "optimization_results.csv"
+    output_path = CACHE_DIR / "optimization_results.csv"
     df_results.to_csv(output_path, index=False)
     print(f"\nResults saved to {output_path}")
 

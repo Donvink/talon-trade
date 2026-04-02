@@ -4,7 +4,7 @@ RPS（相对强度）指标计算
 """
 
 import numpy as np
-from config import RPS_PERIODS
+from core.config import RPS_PERIODS
 
 def calc_returns(df):
     """

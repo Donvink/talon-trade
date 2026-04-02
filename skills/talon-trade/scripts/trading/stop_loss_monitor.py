@@ -6,8 +6,8 @@
 import json
 import os
 from pathlib import Path
-from config import DATA_ROOT, STOP_LOSS_PCT, TAKE_PROFIT_PCT
-from ibkr_client import connect_ib, place_order
+from core.config import DATA_ROOT, STOP_LOSS_PCT, TAKE_PROFIT_PCT
+from trading.ibkr_client import connect_ib, place_order
 
 POSITIONS_FILE = DATA_ROOT / "positions.json"
 

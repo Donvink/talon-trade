@@ -11,7 +11,7 @@ import yfinance as yf
 import requests
 from datetime import datetime, timedelta
 from pathlib import Path
-from config import DB_PATH, DATA_SOURCE, POLYGON_API_KEY
+from core.config import DB_PATH, DATA_SOURCE, POLYGON_API_KEY
 
 class DataManager:
     def __init__(self):
@@ -149,13 +149,21 @@ class DataManager:
             raise ValueError(f"Unsupported DATA_SOURCE: {DATA_SOURCE}")
 
     def insert_dataframe(self, df):
-        """批量插入数据到数据库"""
+        """批量插入数据到数据库，处理重复数据"""
         if df.empty:
             return
-        # 确保列顺序与表一致
-        cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'adj_close', 'volume', 'dividends', 'split_ratio']
-        df = df[cols]
-        df.to_sql('daily', self.conn, if_exists='append', index=False, method='multi', chunksize=500)
+        
+        # 使用 INSERT OR REPLACE 处理重复
+        for _, row in df.iterrows():
+            self.conn.execute("""
+                INSERT OR REPLACE INTO daily 
+                (symbol, date, open, high, low, close, adj_close, volume, dividends, split_ratio)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                row['symbol'], row['date'], row['open'], row['high'], row['low'],
+                row['close'], row['adj_close'], row['volume'], row['dividends'], row['split_ratio']
+            ))
+        self.conn.commit()
 
     def fetch_and_store(self, symbol, start, end):
         """下载并存储单只股票数据（自动跳过已有数据）"""

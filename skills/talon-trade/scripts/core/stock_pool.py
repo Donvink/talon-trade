@@ -10,11 +10,11 @@ import time
 import random
 from pathlib import Path
 from datetime import datetime
-from config import DB_PATH, DATA_ROOT
+from core.config import DB_PATH, CACHE_DIR
 
 SP500_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 GITHUB_CSV_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
-LOCAL_CSV = DATA_ROOT / "sp500_components.csv"  # 本地缓存CSV
+LOCAL_CSV = CACHE_DIR / "sp500_components.csv"  # 本地缓存CSV
 
 HEADERS_LIST = [
     {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'},

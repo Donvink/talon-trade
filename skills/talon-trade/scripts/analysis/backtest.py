@@ -10,21 +10,17 @@ import numpy as np
 from datetime import timedelta
 from pathlib import Path
 from tqdm import tqdm
-
-# 添加当前目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
-
 import pandas_ta as ta
-from config import (
+from core.config import (
     RPS_THRESHOLD, RPS_PERIODS,
     STOP_LOSS_PCT, TAKE_PROFIT_PCT, TRAILING_STOP_PCT,
     MAX_HOLD_DAYS, MIN_HOLD_DAYS, MAX_BUY, MAX_OWN, USE_FUNDAMENTALS,
     COMMISSION, LOG_DIR
 )
-from data_manager import DataManager
-from stock_pool import get_sp500_symbols
-from rps_calculator import calc_returns, calc_rps_for_all
-from factors import score_stock
+from core.data_manager import DataManager
+from core.stock_pool import get_sp500_symbols
+from core.rps_calculator import calc_returns, calc_rps_for_all
+from core.factors import score_stock
 
 
 def backtest(

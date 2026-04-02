@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime, date, timedelta
-from config import DATA_ROOT, DB_PATH, MAX_ORDER_VALUE, MAX_ORDER_SHARES, DAILY_LOSS_LIMIT, MAX_POSITION_PCT, MAX_OPEN_POSITIONS
+from core.config import DATA_ROOT, DB_PATH, MAX_ORDER_VALUE, MAX_ORDER_SHARES, DAILY_LOSS_LIMIT, MAX_POSITION_PCT, MAX_OPEN_POSITIONS
 
 # 持久化文件
 PNL_FILE = DATA_ROOT / "daily_pnl.json"

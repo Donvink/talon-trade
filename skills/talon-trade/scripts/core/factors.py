@@ -9,8 +9,8 @@ import datetime
 
 import yfinance as yf
 import numpy as np
-from config import RPS_THRESHOLD
-from data_manager import DataManager
+from core.config import RPS_THRESHOLD
+from core.data_manager import DataManager
 
 def calc_volume_factor(df):
     """成交量因子：当前成交量/20日均量"""

@@ -11,10 +11,12 @@ from pathlib import Path
 from datetime import datetime
 
 # 添加脚本目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
+SCRIPT_DIR = Path(__file__).parent.parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-from data_manager import DataManager
-from stock_pool import get_sp500_symbols
+from core.data_manager import DataManager
+from core.stock_pool import get_sp500_symbols
 
 def fetch_fundamentals_for_symbol(symbol):
     """获取单只股票的历史基本面数据，返回 DataFrame"""

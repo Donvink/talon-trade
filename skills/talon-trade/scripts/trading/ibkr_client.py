@@ -15,11 +15,8 @@ import json
 import sys
 from pathlib import Path
 
-# 添加当前目录到路径以便导入 config
-sys.path.insert(0, str(Path(__file__).parent))
-
 from ib_insync import IB, Stock, MarketOrder, LimitOrder, StopOrder
-from config import IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID, IBKR_TIMEOUT
+from core.config import IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID, IBKR_TIMEOUT
 
 # 全局连接
 _ib = None

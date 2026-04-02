@@ -6,11 +6,11 @@ RPS选股主程序
 import json
 import sys
 from datetime import datetime
-from data_manager import DataManager
-from stock_pool import get_sp500_symbols
-from rps_calculator import calc_returns, calc_rps_for_all
-from factors import score_stock
-from config import RPS_THRESHOLD, RPS_PERIODS, LOG_DIR
+from core.config import RPS_THRESHOLD, RPS_PERIODS, CACHE_DIR
+from core.data_manager import DataManager
+from core.stock_pool import get_sp500_symbols
+from core.rps_calculator import calc_returns, calc_rps_for_all
+from core.factors import score_stock
 
 def main():
     dm = DataManager()
@@ -59,7 +59,7 @@ def main():
     }
 
     # 保存结果到JSON
-    output_path = LOG_DIR.parent / "rps_candidates.json"
+    output_path = CACHE_DIR / "rps_candidates.json"
     with open(output_path, 'w') as f:
         json.dump(result, f, indent=2)
 

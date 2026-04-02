@@ -23,19 +23,31 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime, timedelta
 
-sys.path.insert(0, str(Path(__file__).parent))
+# SCRIPT_DIR = Path(__file__).parent
+# sys.path.insert(0, str(SCRIPT_DIR))
 
-from config import (
-    DATA_ROOT, LOG_DIR, RPS_THRESHOLD, RPS_PERIODS,
+# 设置路径
+def setup_path():
+    scripts_dir = Path(__file__).parent
+    try:
+        import core.config
+    except ImportError:
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
+setup_path()
+
+from core.config import (
+    LOG_DIR, RPS_THRESHOLD, RPS_PERIODS,
     MAX_BUY, MAX_OWN, COMMISSION,
-    IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID
+    IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID, CACHE_DIR
 )
-from data_manager import DataManager
-from stock_pool import get_sp500_symbols
-from screener import main as run_screener
-from ibkr_client import execute_order, connect_ib, get_account_cash
-from stop_loss_monitor import monitor_and_execute as run_stop_loss
-from backtest import backtest
+from core.data_manager import DataManager
+from core.stock_pool import get_sp500_symbols
+from analysis.screener import main as run_screener
+from trading.ibkr_client import execute_order, connect_ib, get_account_cash
+from trading.stop_loss_monitor import monitor_and_execute as run_stop_loss
+from analysis.backtest import backtest
 
 # 设置日志
 log_file = LOG_DIR / f"talon_trade_{datetime.now().strftime('%Y%m%d')}.log"
@@ -69,7 +81,7 @@ def screen_stocks():
     """运行RPS选股，返回候选列表"""
     logger.info("运行RPS选股...")
     run_screener()
-    candidates_file = DATA_ROOT / "rps_candidates.json"
+    candidates_file = CACHE_DIR / "rps_candidates.json"
     if not candidates_file.exists():
         logger.warning("未找到选股结果文件，选股可能失败")
         return []
@@ -85,7 +97,19 @@ def get_current_holdings(ib):
     positions = ib.positions()
     holdings = {}
     for pos in positions:
-        holdings[pos.contract.symbol] = pos.position * pos.marketPrice()
+        # 使用 marketPrice() 方法（注意括号）
+        # 或者使用 pos.position * pos.contract.last
+        try:
+            # 方法1：使用 marketPrice()
+            price = pos.marketPrice()
+        except AttributeError:
+            # 方法2：从合约获取最新价格
+            ticker = ib.reqMktData(pos.contract, '', False, False)
+            ib.sleep(0.5)
+            price = ticker.last if ticker.last else ticker.bid
+            if price is None:
+                price = pos.avgCost  # 降级使用成本价
+        holdings[pos.contract.symbol] = pos.position * price
     return holdings
 
 
@@ -248,7 +272,7 @@ def main():
 
     if args.dry_run and args.step == 'trade':
         logger.info("[DRY RUN] 模拟交易模式")
-        cand_file = DATA_ROOT / "latest_candidates.txt"
+        cand_file = CACHE_DIR / "latest_candidates.txt"
         if cand_file.exists():
             with open(cand_file) as f:
                 candidates = [line.strip() for line in f if line.strip()]
@@ -275,11 +299,11 @@ def main():
 
         if args.step in ('all', 'screen'):
             candidates = screen_stocks()
-            with open(DATA_ROOT / "latest_candidates.txt", 'w') as f:
+            with open(CACHE_DIR / "latest_candidates.txt", 'w') as f:
                 f.write('\n'.join(candidates))
         else:
             if args.step == 'trade':
-                cand_file = DATA_ROOT / "latest_candidates.txt"
+                cand_file = CACHE_DIR / "latest_candidates.txt"
                 if cand_file.exists():
                     with open(cand_file) as f:
                         candidates = [line.strip() for line in f if line.strip()]
