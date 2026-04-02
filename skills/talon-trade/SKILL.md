@@ -21,27 +21,29 @@ metadata:
 
 ## Script Directory
 
-**Agent Execution**: Determine this SKILL.md directory as `{baseDir}`, then use `{baseDir}/scripts/<name>.py`. Ensure Python 3.10+ is installed and dependencies are configured.
+**Agent Execution**: This SKILL.md is located at `{baseDir}`, use `{baseDir}/scripts/<name>.py` to execute scripts. Ensure Python 3.10+ is installed and dependencies are configured.
 
 | Script | Purpose |
-|------|------|
-| `scripts/main.py` | Main execution script, coordinates the entire workflow |
-| `scripts/backtest.py` | Backtest RPS strategy with dynamic exit rules |
-| `scripts/screener.py` | RPS stock screening and multi-factor scoring |
-| `scripts/data_manager.py` | Local data management (SQLite, download, incremental update) |
-| `scripts/ibkr_client.py` | Interactive Brokers API client (paper/live trading) |
-| `scripts/risk_checker.py` | Risk control and order validation |
-| `scripts/stop_loss_monitor.py` | Stop-loss/take-profit monitoring |
-| `scripts/rps_calculator.py` | RPS (Relative Price Strength) calculation |
-| `scripts/factors.py` | Multi-factor scoring (volume, fundamentals, etc.) |
-| `scripts/stock_pool.py` | S&P 500 constituent management |
-| `scripts/generate_report.py` | Generate backtest report with equity curve |
+|--------|---------|
+| `{baseDir}/scripts/main.py` | Main execution script, coordinates the entire workflow |
+| `{baseDir}/scripts/analysis/backtest.py` | Backtest RPS strategy with dynamic exit rules |
+| `{baseDir}/scripts/analysis/screener.py` | RPS stock screening and multi-factor scoring |
+| `{baseDir}/scripts/analysis/generate_report.py` | Generate backtest report with equity curve |
+| `{baseDir}/scripts/analysis/optimize.py` | Parameter optimization for strategy |
+| `{baseDir}/scripts/core/data_manager.py` | Local data management (SQLite, download, incremental update) |
+| `{baseDir}/scripts/core/stock_pool.py` | S&P 500 constituent management |
+| `{baseDir}/scripts/core/rps_calculator.py` | RPS (Relative Price Strength) calculation |
+| `{baseDir}/scripts/core/factors.py` | Multi-factor scoring (volume, fundamentals, etc.) |
+| `{baseDir}/scripts/trading/ibkr_client.py` | Interactive Brokers API client (paper/live trading) |
+| `{baseDir}/scripts/trading/risk_checker.py` | Risk control and order validation |
+| `{baseDir}/scripts/trading/stop_loss_monitor.py` | Stop-loss/take-profit monitoring |
+| `{baseDir}/scripts/utils/update_fundamentals.py` | Update fundamental data |
 
 ## Configuration Preferences
 
-1. Check config.yaml exists: `{baseDir}/talon-trade/config.yaml`
+1. Check config.yaml exists: `{baseDir}/config.yaml`
 
-2. Check .env file exists with API keys: `{baseDir}/talon-trade/.env`
+2. Check .env file exists with API keys: `{baseDir}/.env`
 
 **config.yaml supports**: Risk parameters | Screener parameters | IBKR connection settings | Data source selection | Trading commission
 **.env supports**: API keys for data sources (Polygon.io, etc.)
@@ -49,7 +51,7 @@ metadata:
 **Minimum supported keys**:
 
 | Key | Default | Description |
-|-----|---------|------|
+|-----|---------|-------------|
 | `rps_threshold` | `85` | RPS threshold for stock screening (0-100) |
 | `rps_periods` | `[20, 60, 120]` | RPS calculation periods (days) |
 | `max_buy` | `3` | Maximum number of stocks to buy per day |
@@ -139,7 +141,7 @@ Check items: Python version | Dependencies | Database connectivity | IBKR connec
 **If any check fails**, provide fix guidance:
 
 | Check Item | Fix Method |
-|-------|----------|
+|------------|-------------|
 | Python version | Install Python 3.10+: `conda create -n openclaw python=3.10` |
 | Dependencies | Run `pip install -r {baseDir}/requirements.txt` |
 | Database | Ensure `data/` directory is writable |
@@ -170,35 +172,38 @@ Check and load config.yaml settings (see Configuration Preferences section above
 **First-time full download** (2 years of S&P 500 historical data):
 
 ```bash
-python {baseDir}/scripts/main.py --step update
+cd {baseDir}/scripts
+python main.py --step update
 ```
 
 **Daily incremental update** (automatically skips already downloaded data):
 
 ```bash
-python {baseDir}/scripts/main.py --step update
+python main.py --step update
 ```
 
 **Force refresh** (redownload all data):
 
 ```bash
-python {baseDir}/scripts/main.py --step update --force-refresh
+python main.py --step update --force-refresh
 ```
 
 **Data Storage**:
-- Database: `~/.openclaw/data/talon_trade/market_data.db`
-- Logs: `~/.openclaw/data/talon_trade/logs/`
-- Cache: `~/.openclaw/data/talon_trade/`
+- Database: `{baseDir}/data/db/market_data.db`
+- Logs: `{baseDir}/data/logs/`
+- Cache: `{baseDir}/data/cache/`
+- Backtest results: `{baseDir}/data/backtest/`
 
 ### Step 2: Run RPS Screener
 
 Generate candidate stock list based on RPS and multi-factor scoring:
 
 ```bash
-python {baseDir}/scripts/main.py --step screen
+cd {baseDir}/scripts
+python main.py --step screen
 ```
 
-**Output**: `~/.openclaw/data/talon_trade/rps_candidates.json`
+**Output**: `{baseDir}/data/cache/rps_candidates.json`
 
 **Screening Logic**:
 1. Calculate RPS for 20/60/120-day periods
@@ -211,13 +216,14 @@ python {baseDir}/scripts/main.py --step screen
 **Paper trading (dry-run mode)** - no actual orders:
 
 ```bash
-python {baseDir}/scripts/main.py --step trade --dry-run
+cd {baseDir}/scripts
+python main.py --step trade --dry-run
 ```
 
 **Paper trading (live paper account)**:
 
 ```bash
-python {baseDir}/scripts/main.py --step trade
+python main.py --step trade
 ```
 
 **Position Management Logic**:
@@ -227,6 +233,7 @@ python {baseDir}/scripts/main.py --step trade
 - If cash insufficient, allocate proportionally
 
 **Exit Rules** (checked daily):
+
 | Rule | Condition |
 |------|-----------|
 | Stop Loss | P&L ≤ `stop_loss_pct` |
@@ -240,13 +247,14 @@ python {baseDir}/scripts/main.py --step trade
 Run stop-loss/take-profit monitoring (can be scheduled during trading hours):
 
 ```bash
-python {baseDir}/scripts/main.py --step monitor
+cd {baseDir}/scripts
+python main.py --step monitor
 ```
 
 **With custom duration and interval**:
 
 ```bash
-python {baseDir}/scripts/main.py --step monitor --monitor-duration 390 --monitor-interval 30
+python main.py --step monitor --monitor-duration 390 --monitor-interval 30
 ```
 
 ### Step 5: Run Backtest
@@ -254,7 +262,8 @@ python {baseDir}/scripts/main.py --step monitor --monitor-duration 390 --monitor
 Validate strategy performance with historical data:
 
 ```bash
-python {baseDir}/scripts/main.py --step backtest
+cd {baseDir}/scripts
+python main.py --step backtest
 ```
 
 **Backtest Output**:
@@ -270,13 +279,14 @@ python {baseDir}/scripts/main.py --step backtest
 Run full workflow (update → screen → trade → monitor):
 
 ```bash
-python {baseDir}/scripts/main.py --step all
+cd {baseDir}/scripts
+python main.py --step all
 ```
 
 **With dry-run** (no actual orders):
 
 ```bash
-python {baseDir}/scripts/main.py --step all --dry-run
+python main.py --step all --dry-run
 ```
 
 ## Detailed Feature Description
@@ -284,7 +294,7 @@ python {baseDir}/scripts/main.py --step all --dry-run
 ### Data Management Module
 
 | Function | Purpose | Cache | Incremental |
-|------|------|------|------|
+|----------|---------|-------|-------------|
 | `download_full_history()` | Download 2 years of historical data | SQLite | ✓ |
 | `daily_update()` | Download latest trading data | SQLite | ✓ |
 | `get_data()` | Read data from local database | SQLite | - |
@@ -376,12 +386,12 @@ RPS = (Rank of stock's return / Total stocks) × 100
 Customize via config.yaml. See the **Configuration Preferences** section for supported options.
 
 **Adding New Factors**:
-1. Edit `scripts/factors.py`
+1. Edit `{baseDir}/scripts/core/factors.py`
 2. Add new factor calculation function
 3. Integrate into `score_stock()` with desired weight
 
 **Adding New Exit Rules**:
-1. Edit `scripts/backtest.py` and `scripts/stop_loss_monitor.py`
+1. Edit `{baseDir}/scripts/analysis/backtest.py` and `{baseDir}/scripts/trading/stop_loss_monitor.py`
 2. Add new condition in sell check section
 3. Add corresponding parameter in config.yaml
 
@@ -399,4 +409,4 @@ Customize via config.yaml. See the **Configuration Preferences** section for sup
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0.0 | 2026-04-02 | Initial version |
+| 1.0.0 | 2026-04-02 | Initial release with modular structure |

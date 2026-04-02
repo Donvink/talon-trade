@@ -25,23 +25,25 @@ metadata:
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/main.py` | 主执行脚本，协调整个工作流程 |
-| `scripts/backtest.py` | RPS 策略回测，支持动态退出规则 |
-| `scripts/screener.py` | RPS 选股和多因子评分 |
-| `scripts/data_manager.py` | 本地数据管理（SQLite、下载、增量更新） |
-| `scripts/ibkr_client.py` | Interactive Brokers API 客户端（模拟盘/实盘） |
-| `scripts/risk_checker.py` | 风控检查和订单验证 |
-| `scripts/stop_loss_monitor.py` | 止损/止盈监控 |
-| `scripts/rps_calculator.py` | RPS（相对强度）计算 |
-| `scripts/factors.py` | 多因子评分（成交量、基本面等） |
-| `scripts/stock_pool.py` | 标普500成分股管理 |
-| `scripts/generate_report.py` | 生成回测报告（资产曲线、月度收益） |
+| `{baseDir}/scripts/main.py` | 主执行脚本，协调整个工作流程 |
+| `{baseDir}/scripts/analysis/backtest.py` | RPS 策略回测，支持动态退出规则 |
+| `{baseDir}/scripts/analysis/screener.py` | RPS 选股和多因子评分 |
+| `{baseDir}/scripts/analysis/generate_report.py` | 生成回测报告（资产曲线、月度收益） |
+| `{baseDir}/scripts/analysis/optimize.py` | 策略参数优化 |
+| `{baseDir}/scripts/core/data_manager.py` | 本地数据管理（SQLite、下载、增量更新） |
+| `{baseDir}/scripts/core/stock_pool.py` | 标普500成分股管理 |
+| `{baseDir}/scripts/core/rps_calculator.py` | RPS（相对强度）计算 |
+| `{baseDir}/scripts/core/factors.py` | 多因子评分（成交量、基本面等） |
+| `{baseDir}/scripts/trading/ibkr_client.py` | Interactive Brokers API 客户端（模拟盘/实盘） |
+| `{baseDir}/scripts/trading/risk_checker.py` | 风控检查和订单验证 |
+| `{baseDir}/scripts/trading/stop_loss_monitor.py` | 止损/止盈监控 |
+| `{baseDir}/scripts/utils/update_fundamentals.py` | 更新基本面数据 |
 
 ## 配置说明
 
-1. 检查 config.yaml 是否存在：`{baseDir}/talon-trade/config.yaml`
+1. 检查 config.yaml 是否存在：`{baseDir}/config.yaml`
 
-2. 检查 .env 文件是否配置了 API 密钥：`{baseDir}/talon-trade/.env`
+2. 检查 .env 文件是否配置了 API 密钥：`{baseDir}/.env`
 
 **config.yaml 支持**：风险参数 | 选股参数 | IBKR 连接设置 | 数据源选择 | 交易佣金
 **.env 支持**：数据源 API 密钥（Polygon.io 等）
@@ -170,35 +172,38 @@ Talon-Trade 执行进度：
 **首次全量下载**（2年标普500历史数据）：
 
 ```bash
-python {baseDir}/scripts/main.py --step update
+cd {baseDir}/scripts
+python main.py --step update
 ```
 
 **每日增量更新**（自动跳过已下载数据）：
 
 ```bash
-python {baseDir}/scripts/main.py --step update
+python main.py --step update
 ```
 
 **强制刷新**（重新下载所有数据）：
 
 ```bash
-python {baseDir}/scripts/main.py --step update --force-refresh
+python main.py --step update --force-refresh
 ```
 
 **数据存储位置**：
-- 数据库：`~/.openclaw/data/talon_trade/market_data.db`
-- 日志：`~/.openclaw/data/talon_trade/logs/`
-- 缓存：`~/.openclaw/data/talon_trade/`
+- 数据库：`{baseDir}/data/db/market_data.db`
+- 日志：`{baseDir}/data/logs/`
+- 缓存：`{baseDir}/data/cache/`
+- 回测结果：`{baseDir}/data/backtest/`
 
 ### 步骤 2：运行 RPS 选股
 
 基于 RPS 和多因子评分生成候选股票列表：
 
 ```bash
-python {baseDir}/scripts/main.py --step screen
+cd {baseDir}/scripts
+python main.py --step screen
 ```
 
-**输出文件**：`~/.openclaw/data/talon_trade/rps_candidates.json`
+**输出文件**：`{baseDir}/data/cache/rps_candidates.json`
 
 **选股逻辑**：
 1. 计算 20/60/120 日 RPS
@@ -211,13 +216,14 @@ python {baseDir}/scripts/main.py --step screen
 **模拟盘（dry-run 模式）** - 不实际下单：
 
 ```bash
-python {baseDir}/scripts/main.py --step trade --dry-run
+cd {baseDir}/scripts
+python main.py --step trade --dry-run
 ```
 
 **模拟盘（真实模拟账户）**：
 
 ```bash
-python {baseDir}/scripts/main.py --step trade
+python main.py --step trade
 ```
 
 **仓位管理逻辑**：
@@ -241,13 +247,14 @@ python {baseDir}/scripts/main.py --step trade
 运行止损/止盈监控（可在交易时段内定时执行）：
 
 ```bash
-python {baseDir}/scripts/main.py --step monitor
+cd {baseDir}/scripts
+python main.py --step monitor
 ```
 
 **自定义监控时长和间隔**：
 
 ```bash
-python {baseDir}/scripts/main.py --step monitor --monitor-duration 390 --monitor-interval 30
+python main.py --step monitor --monitor-duration 390 --monitor-interval 30
 ```
 
 ### 步骤 5：运行回测
@@ -255,7 +262,8 @@ python {baseDir}/scripts/main.py --step monitor --monitor-duration 390 --monitor
 使用历史数据验证策略表现：
 
 ```bash
-python {baseDir}/scripts/main.py --step backtest
+cd {baseDir}/scripts
+python main.py --step backtest
 ```
 
 **回测输出内容**：
@@ -271,13 +279,14 @@ python {baseDir}/scripts/main.py --step backtest
 运行完整流程（更新数据 → 选股 → 交易 → 监控）：
 
 ```bash
-python {baseDir}/scripts/main.py --step all
+cd {baseDir}/scripts
+python main.py --step all
 ```
 
 **模拟模式**（不实际下单）：
 
 ```bash
-python {baseDir}/scripts/main.py --step all --dry-run
+python main.py --step all --dry-run
 ```
 
 ## 功能详解
@@ -377,12 +386,12 @@ RPS = (股票涨幅排名 / 总股票数) × 100
 通过 config.yaml 进行自定义配置。支持的配置项请参见上方**配置说明**。
 
 **添加新因子**：
-1. 编辑 `scripts/factors.py`
+1. 编辑 `{baseDir}/scripts/core/factors.py`
 2. 添加新因子计算函数
 3. 在 `score_stock()` 中集成并设置权重
 
 **添加新退出规则**：
-1. 编辑 `scripts/backtest.py` 和 `scripts/stop_loss_monitor.py`
+1. 编辑 `{baseDir}/scripts/analysis/backtest.py` 和 `{baseDir}/scripts/trading/stop_loss_monitor.py`
 2. 在卖出检查部分添加新条件
 3. 在 config.yaml 中添加对应参数
 
@@ -400,4 +409,5 @@ RPS = (股票涨幅排名 / 总股票数) × 100
 
 | 版本 | 日期 | 更新内容 |
 |------|------|----------|
-| 1.0.0 | 2026-04-02 | 初始版本 |
+| 1.0.0 | 2026-04-02 | 初始版本，模块化结构 |
+

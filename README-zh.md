@@ -1,9 +1,8 @@
-
 # 🦞 Talon-Trade 美股量化交易系统
 
 基于 RPS（相对强度）的多因子选股与自动化交易系统，专为美股市场设计。支持历史回测、模拟盘交易、实盘交易，并提供完整的仓位管理与风控机制。
 
-[English](./README.md) | [使用文档](./skills/talon-trade/SKILL.md)
+[English](./README.md) | [使用文档](./skills/talon-trade/SKILL-zh.md)
 
 ## ✨ 核心特性
 
@@ -45,25 +44,52 @@
 
 ```
 talon-trade/
-├── config.yaml              # 配置文件
-├── requirements.txt         # Python 依赖
-├── skills/talon-trade/
-│   ├── SKILL.md            # OpenClaw 技能描述
-│   ├── scripts/            # 核心脚本
-│   │   ├── main.py         # 一键交易主程序
-│   │   ├── backtest.py     # 回测模块
-│   │   ├── data_manager.py # 数据管理
-│   │   ├── screener.py     # RPS 选股
-│   │   ├── ibkr_client.py  # IBKR 交易接口
-│   │   ├── risk_checker.py # 风控检查
-│   │   ├── stop_loss_monitor.py # 止损监控
-│   │   ├── rps_calculator.py    # RPS 计算
-│   │   └── factors.py      # 多因子评分
-│   ├── references/         # 参考文档
-│   └── hooks/              # 钩子脚本
-└── data/talon_trade/       # 数据存储（自动创建）
-    ├── market_data.db      # 日线数据
-    └── logs/               # 日志文件
+├── README.md
+├── README-zh.md
+├── LICENSE
+├── requirements.txt
+├── assets/                       # 图片资源
+│   ├── equity_curve.png
+│   └── monthly_returns.png
+├── data/                         # 数据存储
+│   └── talon_trade/
+│       ├── db/
+│       │   └── market_data.db
+│       ├── logs/
+│       ├── cache/
+│       └── backtest/
+├── tests/                        # 测试脚本
+│   ├── test_all.py
+│   ├── test_ibapi.py
+│   └── test_ibsync.py
+└── skills/
+    └── talon-trade/
+        ├── SKILL.md
+        ├── SKILL-zh.md
+        ├── config.yaml
+        ├── config.example.yaml
+        ├── hooks/
+        ├── references/
+        └── scripts/
+            ├── main.py
+            ├── core/
+            │   ├── config.py
+            │   ├── data_manager.py
+            │   ├── stock_pool.py
+            │   ├── rps_calculator.py
+            │   └── factors.py
+            ├── trading/
+            │   ├── ibkr_client.py
+            │   ├── risk_checker.py
+            │   └── stop_loss_monitor.py
+            ├── analysis/
+            │   ├── screener.py
+            │   ├── backtest.py
+            │   ├── generate_report.py
+            │   └── optimize.py
+            └── utils/
+                ├── update_fundamentals.py
+                └── update_fundamentals_history.py
 ```
 
 ## 🚀 快速开始

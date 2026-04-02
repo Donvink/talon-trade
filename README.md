@@ -44,25 +44,52 @@ A quantitative trading system for US stocks based on RPS (Relative Price Strengt
 
 ```
 talon-trade/
-├── config.yaml              # Configuration file
-├── requirements.txt         # Python dependencies
-├── skills/talon-trade/
-│   ├── SKILL.md            # OpenClaw skill description
-│   ├── scripts/            # Core scripts
-│   │   ├── main.py         # Main trading script
-│   │   ├── backtest.py     # Backtest module
-│   │   ├── data_manager.py # Data management
-│   │   ├── screener.py     # RPS screener
-│   │   ├── ibkr_client.py  # IBKR API client
-│   │   ├── risk_checker.py # Risk control
-│   │   ├── stop_loss_monitor.py # Stop-loss monitoring
-│   │   ├── rps_calculator.py    # RPS calculation
-│   │   └── factors.py      # Multi-factor scoring
-│   ├── references/         # Reference docs
-│   └── hooks/              # Hook scripts
-└── data/talon_trade/       # Data storage (auto-created)
-    ├── market_data.db      # Daily price data
-    └── logs/               # Log files
+├── README.md
+├── README-zh.md
+├── LICENSE
+├── requirements.txt
+├── assets/                       # Images
+│   ├── equity_curve.png
+│   └── monthly_returns.png
+├── data/                         # Data storage
+│   └── talon_trade/
+│       ├── db/
+│       │   └── market_data.db
+│       ├── logs/
+│       ├── cache/
+│       └── backtest/
+├── tests/                        # Test scripts
+│   ├── test_all.py
+│   ├── test_ibapi.py
+│   └── test_ibsync.py
+└── skills/
+    └── talon-trade/
+        ├── SKILL.md
+        ├── SKILL-zh.md
+        ├── config.yaml
+        ├── config.example.yaml
+        ├── hooks/
+        ├── references/
+        └── scripts/
+            ├── main.py
+            ├── core/
+            │   ├── config.py
+            │   ├── data_manager.py
+            │   ├── stock_pool.py
+            │   ├── rps_calculator.py
+            │   └── factors.py
+            ├── trading/
+            │   ├── ibkr_client.py
+            │   ├── risk_checker.py
+            │   └── stop_loss_monitor.py
+            ├── analysis/
+            │   ├── screener.py
+            │   ├── backtest.py
+            │   ├── generate_report.py
+            │   └── optimize.py
+            └── utils/
+                ├── update_fundamentals.py
+                └── update_fundamentals_history.py
 ```
 
 ## 🚀 Quick Start
