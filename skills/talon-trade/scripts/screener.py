@@ -40,7 +40,8 @@ def main():
         # 要求所有周期RPS均大于阈值
         if all(rps_scores.get(f'{p}d_rps', 0) >= RPS_THRESHOLD for p in RPS_PERIODS):
             df = dm.get_data(sym)
-            total_score = score_stock(sym, df, rps_scores)
+            current_date = df.index[-1].strftime('%Y-%m-%d')
+            total_score = score_stock(sym, df, rps_scores, as_of_date=current_date)
             candidates.append({
                 'symbol': sym,
                 'rps_scores': rps_scores,

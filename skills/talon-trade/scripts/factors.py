@@ -31,7 +31,7 @@ def fetch_fundamentals_at_date(symbol, date_str):
         return fund['pe'], fund['roe']
     return None, None
 
-def score_stock(symbol, df, rps_scores, as_of_date, use_fundamentals=True):
+def score_stock(symbol, df, rps_scores, as_of_date, use_fundamentals=False):
     """
     综合评分（使用历史基本面数据）
     as_of_date: 当前交易日（字符串 YYYY-MM-DD），用于匹配基本面快照

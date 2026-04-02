@@ -12,36 +12,34 @@ talon-trade 一键交易主脚本
     --step: 可选 all, update, screen, trade, monitor, backtest (默认 all)
     --dry-run: 模拟模式，不实际下单
     --force-refresh: 强制重新下载股票池或历史数据
+仓位管理：等权重仓位 + 总持仓上限 + 每日买入限制
 """
 
 import argparse
 import sys
 import logging
-import yaml
-import pandas as pd
+import json
+import sqlite3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# 添加当前目录到路径（方便导入同目录模块）
 sys.path.insert(0, str(Path(__file__).parent))
 
-# 导入项目模块
 from config import (
-    DATA_ROOT, LOG_DIR, RPS_THRESHOLD, RPS_PERIODS, MAX_BUY,
-    DATA_SOURCE, POLYGON_API_KEY, MAX_ORDER_VALUE, MAX_ORDER_SHARES,
-    DAILY_LOSS_LIMIT, MAX_POSITION_PCT, MAX_OPEN_POSITIONS,
-    STOP_LOSS_PCT, TAKE_PROFIT_PCT
+    DATA_ROOT, LOG_DIR, RPS_THRESHOLD, RPS_PERIODS,
+    MAX_BUY, MAX_OWN, COMMISSION,
+    IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID
 )
 from data_manager import DataManager
 from stock_pool import get_sp500_symbols
 from screener import main as run_screener
-from ibkr_client import main as run_ibkr
-from risk_checker import main as run_risk
+from ibkr_client import execute_order, connect_ib, get_account_cash
 from stop_loss_monitor import monitor_and_execute as run_stop_loss
-from backtest import backtest  # 假设 backtest.py 有 backtest 函数
+from backtest import backtest
 
 # 设置日志
 log_file = LOG_DIR / f"talon_trade_{datetime.now().strftime('%Y%m%d')}.log"
+log_file.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -52,11 +50,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def download_history(dm, symbols, years_back=2, force=False):
     """下载全量历史数据"""
     logger.info(f"开始下载历史数据（{years_back}年），股票数：{len(symbols)}")
     dm.download_full_history(symbols, years_back=years_back)
     logger.info("历史数据下载完成")
+
 
 def update_daily(dm, symbols):
     """每日增量更新"""
@@ -64,33 +64,136 @@ def update_daily(dm, symbols):
     dm.daily_update(symbols)
     logger.info("每日更新完成")
 
+
 def screen_stocks():
     """运行RPS选股，返回候选列表"""
     logger.info("运行RPS选股...")
-    # screener.py 的 main 函数会输出候选并保存 JSON，我们直接调用它
     run_screener()
-    # 读取候选结果
     candidates_file = DATA_ROOT / "rps_candidates.json"
     if not candidates_file.exists():
         logger.warning("未找到选股结果文件，选股可能失败")
         return []
-    import json
     with open(candidates_file) as f:
         data = json.load(f)
     candidates = data.get('candidates', [])
     logger.info(f"候选股票数量：{len(candidates)}")
     return candidates
 
+
+def get_current_holdings(ib):
+    """获取当前持仓市值"""
+    positions = ib.positions()
+    holdings = {}
+    for pos in positions:
+        holdings[pos.contract.symbol] = pos.position * pos.marketPrice()
+    return holdings
+
+
 def execute_trades(candidates, dry_run=False):
-    """执行交易：为每个候选买入固定数量（可配置）"""
+    """
+    执行交易：等权重仓位管理
+    - 每只股票目标市值 = 账户总资产 / max_own
+    - 每日最多买入 max_buy 只新股票
+    - 现金不足时按比例分配
+    """
     if not candidates:
         logger.info("无候选股票，跳过交易")
         return
-    # 默认每个买入10股，可在配置中设定
-    quantity = 10  # 可改为从 config 读取
-    for sym in candidates:
-        logger.info(f"执行交易：买入 {sym} {quantity}股")
-        # 构造订单参数
+
+    candidates = candidates[:MAX_BUY]
+    logger.info(f"候选股票: {candidates}")
+
+    if not dry_run:
+        ib = connect_ib(host=IBKR_HOST, port=IBKR_PORT, client_id=IBKR_CLIENT_ID)
+        # 获取净值
+        net_liquidation = None
+        for v in ib.accountValues():
+            if v.tag == 'NetLiquidation':
+                net_liquidation = float(v.value)
+                break
+        # 获取现金
+        cash = None
+        for v in ib.accountValues():
+            if v.tag == 'TotalCashBalance':
+                cash = float(v.value)
+                break
+        # 获取当前持仓
+        current_holdings = get_current_holdings(ib)
+        ib.disconnect()
+    else:
+        net_liquidation = 100000
+        cash = 100000
+        current_holdings = {}
+
+    if net_liquidation is None:
+        net_liquidation = 100000
+        logger.warning("无法获取净值，使用默认值 $100,000")
+    if cash is None:
+        cash = 100000
+        logger.warning("无法获取现金，使用默认值 $100,000")
+
+    # 计算目标每只股票市值
+    target_per_stock = net_liquidation / MAX_OWN
+    logger.info(f"账户总资产: ${net_liquidation:,.2f}, 最大持仓: {MAX_OWN}, 目标市值/股: ${target_per_stock:.2f}")
+
+    # 筛选未持仓的候选
+    candidates_to_buy = [sym for sym in candidates if sym not in current_holdings]
+    if not candidates_to_buy:
+        logger.info("所有候选股票已在持仓中")
+        return
+
+    # 计算每个候选的目标买入金额
+    buy_needed = {}
+    for sym in candidates_to_buy:
+        current_value = current_holdings.get(sym, 0)
+        needed = target_per_stock - current_value
+        if needed > 0:
+            buy_needed[sym] = needed
+        else:
+            logger.info(f"{sym} 已达到目标市值，无需买入")
+
+    if not buy_needed:
+        return
+
+    total_needed = sum(buy_needed.values())
+    if total_needed > cash:
+        ratio = cash / total_needed
+        logger.info(f"现金不足，按 {ratio:.2%} 比例分配")
+        buy_amounts = {sym: needed * ratio for sym, needed in buy_needed.items()}
+    else:
+        buy_amounts = buy_needed
+
+    # 获取本地价格
+    dm = DataManager()
+    for sym, amount in buy_amounts.items():
+        try:
+            df = dm.get_data(sym)
+            if df.empty:
+                logger.warning(f"{sym} 无本地数据")
+                continue
+            current_price = df['adj_close'].iloc[-1]
+        except Exception as e:
+            logger.error(f"获取 {sym} 价格失败: {e}")
+            continue
+
+        if current_price is None or current_price <= 0:
+            logger.warning(f"{sym} 价格无效")
+            continue
+
+        quantity = int(amount / current_price)
+        if quantity <= 0:
+            logger.warning(f"{sym} 资金不足或价格过高")
+            continue
+
+        actual_cost = quantity * current_price
+        if actual_cost > cash:
+            actual_cost = cash
+            quantity = int(cash / current_price)
+            if quantity == 0:
+                continue
+
+        logger.info(f"买入 {sym} {quantity}股 (约 ${actual_cost:.2f})，目标: ${target_per_stock:.2f}")
+
         args = argparse.Namespace(
             dry_run=dry_run,
             order=True,
@@ -100,49 +203,65 @@ def execute_trades(candidates, dry_run=False):
             type="MARKET",
             limit_price=None,
             stop_price=None,
-            host="127.0.0.1",
-            port=7497,
-            client_id=1,
+            host=IBKR_HOST,
+            port=IBKR_PORT,
+            client_id=IBKR_CLIENT_ID,
             connect=False,
             positions=False,
-            disconnect=True
+            disconnect=True,
+            account=False
         )
-        # 调用 ibkr_client 的 main 函数
-        run_ibkr(args)  # 注意：ibkr_client的main函数会解析参数，我们需要模拟参数传递
+        result = execute_order(args)
+        if result:
+            if 'error' in result:
+                logger.error(f"订单失败: {result['error']}")
+            else:
+                logger.info(f"订单成功: {result}")
+                cash -= actual_cost
+
+    dm.close()
+
 
 def run_backtest():
     """运行回测复盘"""
     logger.info("开始回测复盘...")
-    symbols = get_sp500_symbols()  # 使用全股票池或自定义
-    # 回测最近一年
+    symbols = get_sp500_symbols()
     end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - pd.Timedelta(days=365)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    initial_capital = 100000
     trades_df, final_value = backtest(
-        stock_pool=symbols,  # 测试用前20只symbols[:20]，实际可全量
+        stock_pool=symbols,
         start_date=start_date,
         end_date=end_date,
-        initial_capital=100000
+        initial_capital=initial_capital
     )
-    logger.info(f"回测完成，初始资金: $100,000.00，最终资产：{final_value:.2f}")
+    logger.info(f"回测完成，初始资金: ${initial_capital:,.2f}，最终资产：${final_value:,.2f}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Talon-Trade 一键交易流程")
     parser.add_argument("--step", choices=['all', 'update', 'screen', 'trade', 'monitor', 'backtest'],
-                        # default='all', help="执行步骤，默认全部")
-                        default='backtest', help="执行步骤，默认全部")
-    parser.add_argument("--dry-run", action="store_true", help="模拟模式，不实际下单")
-    parser.add_argument("--force-refresh", action="store_true", help="强制刷新股票池/历史数据")
+                        default='all', help="执行步骤")
+    parser.add_argument("--dry-run", action="store_true", help="模拟模式")
+    parser.add_argument("--force-refresh", action="store_true", help="强制刷新")
     args = parser.parse_args()
 
-    # 初始化数据管理器
+    if args.dry_run and args.step == 'trade':
+        logger.info("[DRY RUN] 模拟交易模式")
+        cand_file = DATA_ROOT / "latest_candidates.txt"
+        if cand_file.exists():
+            with open(cand_file) as f:
+                candidates = [line.strip() for line in f if line.strip()]
+        else:
+            candidates = screen_stocks()
+        execute_trades(candidates, dry_run=True)
+        return
+
     dm = DataManager()
     symbols = get_sp500_symbols(force_refresh=args.force_refresh)
 
     try:
         if args.step in ('all', 'update'):
-            # 检查是否需要全量下载
-            # 简单判断：如果数据库为空，则全量下载
-            import sqlite3
             conn = sqlite3.connect(dm.db_path)
             cursor = conn.execute("SELECT COUNT(*) FROM daily")
             count = cursor.fetchone()[0]
@@ -156,11 +275,9 @@ def main():
 
         if args.step in ('all', 'screen'):
             candidates = screen_stocks()
-            # 保存候选列表供后续使用
             with open(DATA_ROOT / "latest_candidates.txt", 'w') as f:
                 f.write('\n'.join(candidates))
         else:
-            # 如果只执行 trade 步骤，需要读取之前的候选
             if args.step == 'trade':
                 cand_file = DATA_ROOT / "latest_candidates.txt"
                 if cand_file.exists():
@@ -177,7 +294,7 @@ def main():
 
         if args.step in ('all', 'monitor'):
             logger.info("运行止损监控检查")
-            run_stop_loss()  # 此函数会连接IBKR并检查持仓
+            run_stop_loss()
 
         if args.step in ('all', 'backtest'):
             run_backtest()
@@ -188,6 +305,7 @@ def main():
     finally:
         dm.close()
         logger.info("talon-trade 流程结束")
+
 
 if __name__ == "__main__":
     main()

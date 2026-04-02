@@ -35,18 +35,26 @@ DEFAULTS = {
         'max_open_positions': 10,
         'stop_loss_pct': -8,          # 固定止损百分比（负值）
         'take_profit_pct': 20,        # 固定止盈百分比
-        'trailing_stop_pct': 5,       # 移动止损回撤百分比（新增）
-        'max_hold_days': 20,          # 最大持有天数（新增）
-        'min_hold_days': 3,           # 最小持有天数（新增）
+        'trailing_stop_pct': 5,       # 移动止损回撤百分比
+        'max_hold_days': 20,          # 最大持有天数
+        'min_hold_days': 3,           # 最小持有天数
     },
     'screener': {
         'rps_threshold': 90,
         'rps_periods': [20, 60, 120, 250],
-        'max_buy': 5,                # 每次买入的最大股票数量（新增）
-        'use_fundamentals': False,  # 是否在选股中使用基本面数据（新增）
+        'max_buy': 5,               # 每次买入的最大股票数量
+        'max_own': 10,              # 最大持仓数量
+        'use_fundamentals': False,  # 是否在选股中使用基本面数据
+    },
+    'ibkr': {
+        'host': '127.0.0.1',
+        'port': 7497,
+        'client_id': 1,
+        'timeout': 30,
     },
     'data_source': 'yfinance',
     'polygon_api_key': '',
+    'commission': 0.001,  # 手续费率 0.1%
 }
 
 def deep_merge(base, override):
@@ -76,19 +84,29 @@ MAX_POSITION_PCT = config['risk']['max_position_pct']
 MAX_OPEN_POSITIONS = config['risk']['max_open_positions']
 STOP_LOSS_PCT = config['risk']['stop_loss_pct']
 TAKE_PROFIT_PCT = config['risk']['take_profit_pct']
-TRAILING_STOP_PCT = config['risk']['trailing_stop_pct']    # 新增
-MAX_HOLD_DAYS = config['risk']['max_hold_days']            # 新增
-MIN_HOLD_DAYS = config['risk']['min_hold_days']            # 新增
+TRAILING_STOP_PCT = config['risk']['trailing_stop_pct']
+MAX_HOLD_DAYS = config['risk']['max_hold_days']
+MIN_HOLD_DAYS = config['risk']['min_hold_days']
 
 # 选股参数
 RPS_THRESHOLD = config['screener']['rps_threshold']
 RPS_PERIODS = config['screener']['rps_periods']
-MAX_BUY = config['screener']['max_buy']                    # 新增
+MAX_BUY = config['screener']['max_buy']
+MAX_OWN = config['screener']['max_own']
 USE_FUNDAMENTALS = config['screener']['use_fundamentals']
 
 # 数据源
 DATA_SOURCE = config.get('data_source', 'yfinance')
 POLYGON_API_KEY = config.get('polygon_api_key', '') or os.getenv('POLYGON_API_KEY', '')
+
+# IBKR 连接配置
+# IBKR_HOST = os.getenv('IBKR_HOST', '127.0.0.1')   # 你的 Windows IP
+IBKR_HOST = config['ibkr']['host']
+IBKR_PORT = config['ibkr']['port']
+IBKR_CLIENT_ID = config['ibkr']['client_id']
+IBKR_TIMEOUT = config['ibkr']['timeout']
+
+COMMISSION = config.get('commission', 0.001)
 
 # 可选：导出路径常量（供其他模块使用）
 __all__ = [
@@ -98,5 +116,7 @@ __all__ = [
     'STOP_LOSS_PCT', 'TAKE_PROFIT_PCT', 'TRAILING_STOP_PCT',
     'MAX_HOLD_DAYS', 'MIN_HOLD_DAYS',
     'RPS_THRESHOLD', 'RPS_PERIODS', 'HOLD_DAYS',
-    'DATA_SOURCE', 'POLYGON_API_KEY', 'MAX_BUY', 'USE_FUNDAMENTALS'
+    'DATA_SOURCE', 'POLYGON_API_KEY', 'MAX_BUY', 'MAX_OWN',
+    'USE_FUNDAMENTALS',
+    'IBKR_HOST', 'IBKR_PORT', 'IBKR_CLIENT_ID', 'IBKR_TIMEOUT', 'COMMISSION',
 ]
