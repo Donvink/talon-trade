@@ -1,322 +1,207 @@
-# talon-trade
-TalonTrade is a modular AI-powered system for US stock analysis and automated trading. It integrates technical analysis, fundamental screening, news sentiment analysis, risk control, and Interactive Brokers execution—designed as a collection of skills for OpenClaw agents, with a roadmap to become a standalone cross-platform trading assistant.
+# 🦞 Talon-Trade
 
+A quantitative trading system for US stocks based on RPS (Relative Price Strength) multi-factor selection. Supports backtesting, paper trading, and live trading with Interactive Brokers, featuring comprehensive position management and risk control.
 
-https://www.interactivebrokers.com/
+[中文版](./README-zh.md) | [Documentation](./skills/talon-trade/SKILL.md)
 
-下载：去 盈透证券官网 搜索下载TWS (Trader Workstation)。
-安装：像安装普通软件一样完成安装。
-启动：打开软件，在登录界面的登录方式/账户类型里，一定要选择 Paper Trading（模拟交易/纸交）。用你的模拟账户用户名和密码登录
+## ✨ Features
 
+- **RPS Screening**: Based on 20/60/120-day relative strength ranking
+- **Multi-factor Scoring**: Combines volume and fundamentals (optional)
+- **Dynamic Exit**: Stop loss, trailing stop, MACD death cross, take profit, time stop
+- **Position Management**: Equal weight + max positions + daily purchase limit
+- **Backtesting Engine**: Full historical backtesting with performance analytics
+- **Live Trading**: Interactive Brokers API integration (paper/live)
+- **Data Management**: Local SQLite database with full download and daily incremental updates
 
-~/.openclaw/workspace/skills/talon-trade/
-├── SKILL.md
-├── scripts/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── data_manager.py
-│   ├── stock_pool.py
-│   ├── rps_calculator.py
-│   ├── factors.py
-│   ├── screener.py
-│   ├── backtest.py
-│   ├── ibkr_client.py
-│   ├── risk_checker.py
-│   └── stop_loss_monitor.py
-├── references/
-│   └── rps_method.md
-└── hooks/
-    └── pre_execution.sh
+## 📊 Backtest Results (2024-04-01 to 2026-03-31)
 
+| Metric | Value |
+|--------|-------|
+| Initial Capital | $100,000 |
+| Final Capital | $203,900 |
+| Total Return | **103.90%** |
+| Annualized Return | **41.05%** |
+| Sharpe Ratio | **1.67** |
+| Max Drawdown | -20.55% |
+| Win Rate | 48.75% |
+| Avg Profit | +10.64% |
+| Avg Loss | -6.08% |
 
-使用说明
-安装依赖：
+### Equity Curve
 
-bash
-pip install pandas numpy requests yfinance ib_insync
-首次全量下载历史数据：
+![Equity Curve](assets/equity_curve.png)
 
-bash
-cd ~/.openclaw/workspace/skills/talon-trade
-python -c "from scripts.data_manager import DataManager; from scripts.stock_pool import get_sp500_symbols; dm = DataManager(); dm.download_full_history(get_sp500_symbols()); dm.close()"
-每日更新（可设置cron）：
+### Monthly Returns
 
-bash
-python -c "from scripts.data_manager import DataManager; from scripts.stock_pool import get_sp500_symbols; dm = DataManager(); dm.daily_update(get_sp500_symbols()); dm.close()"
-运行RPS选股：
+![Monthly Returns](assets/monthly_returns.png)
 
-bash
-python scripts/screener.py
-运行回测：
+### Trade Records
 
-bash
-python scripts/backtest.py
-启动IBKR模拟盘（端口7497），然后测试下单：
+[Download Trades CSV](assets/trades.csv)
 
-bash
-python scripts/ibkr_client.py --order --symbol AAPL --side BUY --quantity 1
+## 📁 Directory Structure
 
-
-
-
-
-
-
-
-
-~/.openclaw/workspace/skills/
-├── us-stock-data/
-│   └── SKILL.md
-├── technical-analysis/
-│   ├── SKILL.md
-│   └── scripts/
-│       └── indicators.py
-├── fundamental-analysis/
-│   └── SKILL.md
-├── news-analysis/
-│   ├── SKILL.md
-│   └── scripts/
-│       └── sentiment.py
-├── ibkr-executor/
-│   ├── SKILL.md
-│   ├── scripts/
-│   │   └── ibkr_client.py
-│   └── references/
-│       └── api_docs.md
-└── risk-control/
-    ├── SKILL.md
-    └── scripts/
-        └── risk_checker.py
-
-
-
-
-
-
-                ┌────────────────────┐
-                │      Agent         │
-                └────────┬───────────┘
-                         │
-    ┌──────────────┬──────────────┬──────────────┐
-    ↓              ↓              ↓              ↓
-Technical   Fundamental     News Analysis   Risk Control
-Analysis    Analysis
-    ↓              ↓              ↓              ↓
-                ───── 汇总评分 ─────
-                         ↓
-                Portfolio Agent（最终决策）
-                         ↓
-                    Place Order
-
-
-
-## 🧩 1️⃣ Skills（最关键）
-
-### 📈 技术分析 Skill
-
-```python
-def technical_analysis(symbol):
-    price = get_price(symbol)
-    
-    ma20 = calc_ma(price, 20)
-    ma50 = calc_ma(price, 50)
-
-    trend = "bullish" if ma20 > ma50 else "bearish"
-
-    return {
-        "trend": trend,
-        "confidence": 0.7
-    }
+```
+talon-trade/
+├── config.yaml              # Configuration file
+├── requirements.txt         # Python dependencies
+├── skills/talon-trade/
+│   ├── SKILL.md            # OpenClaw skill description
+│   ├── scripts/            # Core scripts
+│   │   ├── main.py         # Main trading script
+│   │   ├── backtest.py     # Backtest module
+│   │   ├── data_manager.py # Data management
+│   │   ├── screener.py     # RPS screener
+│   │   ├── ibkr_client.py  # IBKR API client
+│   │   ├── risk_checker.py # Risk control
+│   │   ├── stop_loss_monitor.py # Stop-loss monitoring
+│   │   ├── rps_calculator.py    # RPS calculation
+│   │   └── factors.py      # Multi-factor scoring
+│   ├── references/         # Reference docs
+│   └── hooks/              # Hook scripts
+└── data/talon_trade/       # Data storage (auto-created)
+    ├── market_data.db      # Daily price data
+    └── logs/               # Log files
 ```
 
----
+## 🚀 Quick Start
 
-### 📊 基本面 Skill
+### 1. Environment Setup
 
-```python
-def fundamental_analysis(symbol):
-    data = get_fundamentals(symbol)
+```bash
+git clone https://github.com/yourname/talon-trade.git
+cd talon-trade
 
-    score = compute_growth_score(data)
+conda create -n openclaw python=3.10 -y
+conda activate openclaw
 
-    return {
-        "score": score,
-        "quality": "high" if score > 0.7 else "medium"
-    }
+pip install -r requirements.txt
 ```
 
----
+### 2. Configuration
 
-### 🧠 新闻分析 Skill
+Edit `skills/talon-trade/config.yaml`:
 
-```python
-def news_analysis(symbol):
-    news = get_news(symbol)
+```yaml
+risk:
+  stop_loss_pct: -10
+  take_profit_pct: 30
+  trailing_stop_pct: 10
+  max_hold_days: 25
+  min_hold_days: 3
+  use_macd_sell: false
 
-    summary = llm_call(f"""
-    Analyze sentiment and AI relevance:
-    {news}
-    """)
+screener:
+  rps_threshold: 85
+  rps_periods: [20, 60, 120]
+  max_buy: 3
+  max_own: 5
+  use_fundamentals: false
 
-    return summary
+ibkr:
+  host: "127.0.0.1"
+  port: 7497
+  client_id: 1
+  timeout: 30
+
+data_source: "yfinance"
+commission: 0.001
 ```
 
----
+### 3. Download Historical Data
 
-### ⚠️ 风控 Skill
-
-```python
-def risk_control(symbol):
-    vol = get_volatility(symbol)
-
-    return {
-        "risk": "high" if vol > 0.4 else "medium",
-        "position_limit": 0.1
-    }
+```bash
+cd skills/talon-trade/scripts
+python main.py --step update
 ```
 
----
+### 4. Run Backtest
 
-### 💰 下单 Skill（实盘接口）
-
-接 Interactive Brokers：
-
-```python
-def place_order(symbol, action, size):
-    ib.placeOrder(...)
+```bash
+python main.py --step backtest
 ```
 
----
+### 5. Paper Trading
 
-## 🤖 2️⃣ Agent（用 Skill 组合）
+1. Start IBKR TWS/IB Gateway and log in to paper account
+2. Run trading:
 
+```bash
+# Dry run (no actual orders)
+python main.py --step trade --dry-run
 
-### 🟢 Market Agent
-
-```python
-market_agent = Agent(
-    name="market_agent",
-    skills=[technical_analysis],
-    instruction="Analyze market trend and return structured result"
-)
+# Live paper trading
+python main.py --step trade
 ```
 
----
+### 6. Daily Automation
 
-### 🔵 Fundamental Agent
+Set up cron job (runs after market close):
 
-```python
-fund_agent = Agent(
-    name="fund_agent",
-    skills=[fundamental_analysis],
-)
+```bash
+crontab -e
+# Add the following line (runs at 04:30 Monday-Friday)
+30 4 * * 1-5 cd /path/to/talon-trade/skills/talon-trade/scripts && conda activate openclaw && python main.py --step all >> logs/daily.log 2>&1
 ```
 
----
+## 📖 Command Reference
 
-### 🟣 News Agent
+| Command | Description |
+|---------|-------------|
+| `python main.py --step all` | Full workflow (update + screen + trade + monitor) |
+| `python main.py --step update` | Update data only |
+| `python main.py --step screen` | Run screener only |
+| `python main.py --step trade` | Execute trades only |
+| `python main.py --step monitor` | Run stop-loss monitoring only |
+| `python main.py --step backtest` | Run backtest |
+| `--dry-run` | Simulation mode, no actual orders |
+| `--force-refresh` | Force refresh data |
 
-```python
-news_agent = Agent(
-    name="news_agent",
-    skills=[news_analysis],
-)
-```
+## 🔧 Position Management Logic
 
----
+- **Target Position**: Target position size per stock = Net Asset Value / `max_own`
+- **Daily Purchases**: Maximum `max_buy` new stocks (not currently held)
+- **Capital Allocation**: Proportional allocation when cash is insufficient
+- **Exit Mechanisms**: Stop loss / take profit / time stop / MACD death cross
 
-### 🔴 Portfolio Agent（核心）
+## 📈 Backtest Report
 
-```python
-portfolio_agent = Agent(
-    name="portfolio_agent",
-    skills=[technical_analysis, fundamental_analysis, news_analysis, risk_control],
-    instruction="""
-    Combine all signals and decide:
-    BUY / SELL / HOLD
-    Return JSON
-    """
-)
-```
+Running backtest outputs:
+- Total return, annualized return, Sharpe ratio
+- Max drawdown, win rate, avg profit/loss
+- Monthly returns table
+- Equity curve chart
+- Drawdown curve chart
 
----
+## ⚠️ Important Notes
 
-# 🔄 三、Workflow
+1. **Paper trading first**: Always test with paper trading before live trading
+2. **Data quality**: yfinance is free but may have delays or missing data
+3. **Risk control**: Past performance doesn't guarantee future results
+4. **Network requirements**: Daily updates require stable internet connection
 
+## 📚 Dependencies
 
-## 单股票流程：
+- Python 3.10+
+- pandas, numpy, requests, yfinance
+- ib_insync (IBKR API)
+- pandas_ta (technical indicators)
+- matplotlib (charts)
+- tqdm (progress bar)
 
-```python
-workflow = [
-    ("market_agent", "analyze trend of NVDA"),
-    ("fund_agent", "analyze fundamentals of NVDA"),
-    ("news_agent", "analyze news of NVDA"),
-    ("portfolio_agent", "make final decision")
-]
-```
+## 🤝 Contributing
 
----
+Issues and Pull Requests are welcome.
 
-## 批量扫描：
+## 📄 License
 
-```python
-for symbol in sp500_list:
-    run_workflow(symbol)
-```
+MIT License
 
----
+## 🎯 Roadmap
 
-
-> **Daily Stock Selection Pipeline（每天自动跑）**
-
----
-
-# 🚀 四、真正的“OpenClaw优势玩法”（关键区别）
-
-## 🔥 1. 真正执行（Execution Agent）
-
-不仅推荐，还能：
-
-* 自动下单
-* 自动调仓
-* 自动止损
-
-
-## 🔥 2. 自反馈系统（非常加分）
-
-```python
-def reflect():
-    trades = load_trade_history()
-
-    return llm_call(f"""
-    Analyze mistakes:
-    {trades}
-    Suggest improvements
-    """)
-```
-
-👉 Agent 会：
-
-* 发现自己判断错
-* 自动优化策略
-
----
-
-## 🔥 3. 事件驱动（高级）
-
-不是每天跑，而是：
-
-```text
-IF:
-- earnings released
-- stock > MA50
-- news sentiment spike
-
-THEN:
-→ trigger agent
-```
-
-
-
-
+- [ ] Support A-shares / Hong Kong stocks
+- [ ] Add more technical indicators
+- [ ] Machine learning selection models
+- [ ] Web visualization dashboard
 

@@ -10,6 +10,7 @@ __pycache__/
 data/
 logs/
 env.json
+**/config.yaml
 
 # Distribution / packaging
 .Python

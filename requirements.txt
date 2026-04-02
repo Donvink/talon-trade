@@ -9,3 +9,4 @@ pandas_ta
 matplotlib
 joblib
 tqdm
+ibapi
