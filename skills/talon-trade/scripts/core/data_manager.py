@@ -189,7 +189,7 @@ class DataManager:
     def daily_update(self, symbols):
         """每日更新：获取最新交易日数据"""
         end = datetime.now().strftime('%Y-%m-%d')
-        start = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
+        start = (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d')
         for sym in symbols:
             self.fetch_and_store(sym, start, end)
 

@@ -124,9 +124,6 @@ def execute_trades(candidates, dry_run=False):
         logger.info("无候选股票，跳过交易")
         return
 
-    candidates = candidates[:MAX_BUY]
-    logger.info(f"候选股票: {candidates}")
-
     if not dry_run:
         ib = connect_ib(host=IBKR_HOST, port=IBKR_PORT, client_id=IBKR_CLIENT_ID)
         # 获取净值
@@ -149,6 +146,15 @@ def execute_trades(candidates, dry_run=False):
         cash = 100000
         current_holdings = {}
 
+    # 检查持仓数量限制
+    current_holdings_count = len(current_holdings)
+    if current_holdings_count >= MAX_OWN:
+        logger.info(f"当前持仓已达上限 ({current_holdings_count}/{MAX_OWN})，不再买入新股票")
+        return
+    
+    available_slots = MAX_OWN - current_holdings_count
+    logger.info(f"当前持仓: {current_holdings_count}/{MAX_OWN}, 还可买入 {available_slots} 只")
+
     if net_liquidation is None:
         net_liquidation = 100000
         logger.warning("无法获取净值，使用默认值 $100,000")
@@ -160,10 +166,12 @@ def execute_trades(candidates, dry_run=False):
     target_per_stock = net_liquidation / MAX_OWN
     logger.info(f"账户总资产: ${net_liquidation:,.2f}, 最大持仓: {MAX_OWN}, 目标市值/股: ${target_per_stock:.2f}")
 
-    # 筛选未持仓的候选
+    # 筛选未持仓的候选，并限制数量
     candidates_to_buy = [sym for sym in candidates if sym not in current_holdings]
+    candidates_to_buy = candidates_to_buy[:min(MAX_BUY, available_slots)]
+    
     if not candidates_to_buy:
-        logger.info("所有候选股票已在持仓中")
+        logger.info("所有候选股票已在持仓中或已达买入上限")
         return
 
     # 计算每个候选的目标买入金额
@@ -187,7 +195,7 @@ def execute_trades(candidates, dry_run=False):
     else:
         buy_amounts = buy_needed
 
-    # 获取本地价格
+    # 获取本地价格并下单
     dm = DataManager()
     for sym, amount in buy_amounts.items():
         try:
