@@ -97,7 +97,7 @@ quant-trade/
 ### 1. Environment Setup
 
 ```bash
-git clone https://github.com/yourname/quant-trade.git
+git clone https://github.com/Donvink/quant-trade.git
 cd quant-trade
 
 conda create -n openclaw python=3.10 -y

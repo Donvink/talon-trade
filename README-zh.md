@@ -98,7 +98,7 @@ quant-trade/
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourname/quant-trade.git
+git clone https://github.com/Donvink/quant-trade.git
 cd quant-trade
 
 # 创建 conda 环境

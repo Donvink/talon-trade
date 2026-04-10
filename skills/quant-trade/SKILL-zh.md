@@ -4,7 +4,7 @@ description: 基于 RPS（相对强度）多因子选股的美股量化交易系
 version: 1.0.0
 metadata:
   openclaw:
-    homepage: https://github.com/yourname/quant-trade
+    homepage: https://github.com/Donvink/quant-trade
     requires:
       anyBins:
         - python3
@@ -13,7 +13,7 @@ metadata:
 
 # 🦞 Quant-Trade 美股量化交易系统
 
-👉 **[GitHub 仓库](https://github.com/yourname/quant-trade)**
+👉 **[GitHub 仓库](https://github.com/Donvink/quant-trade)**
 
 ## 语言
 

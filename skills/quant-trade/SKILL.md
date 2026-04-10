@@ -4,7 +4,7 @@ description: US stock quantitative trading system based on RPS (Relative Price S
 version: 1.0.0
 metadata:
   openclaw:
-    homepage: https://github.com/yourname/quant-trade
+    homepage: https://github.com/Donvink/quant-trade
     requires:
       anyBins:
         - python3
@@ -13,7 +13,7 @@ metadata:
 
 # 🦞 Quant-Trade
 
-👉 **[GitHub Repository](https://github.com/yourname/quant-trade)**
+👉 **[GitHub Repository](https://github.com/Donvink/quant-trade)**
 
 ## Language
 
