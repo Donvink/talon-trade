@@ -1,7 +1,7 @@
 #!/bin/bash
 # scripts/daily_run.sh
 
-cd /mnt/d/projects/talon-trade/skills/talon-trade/scripts
+cd /mnt/d/projects/quant-trade/skills/quant-trade/scripts
 source /home/zhong/miniconda3/etc/profile.d/conda.sh
 conda activate openclaw
 

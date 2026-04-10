@@ -1,19 +1,19 @@
 ---
-name: talon-trade
+name: quant-trade
 description: 基于 RPS（相对强度）多因子选股的美股量化交易系统，支持回测、模拟盘和实盘交易，对接 Interactive Brokers
 version: 1.0.0
 metadata:
   openclaw:
-    homepage: https://github.com/yourname/talon-trade
+    homepage: https://github.com/yourname/quant-trade
     requires:
       anyBins:
         - python3
         - python
 ---
 
-# 🦞 Talon-Trade 美股量化交易系统
+# 🦞 Quant-Trade 美股量化交易系统
 
-👉 **[GitHub 仓库](https://github.com/yourname/talon-trade)**
+👉 **[GitHub 仓库](https://github.com/yourname/quant-trade)**
 
 ## 语言
 
@@ -153,7 +153,7 @@ pip install -r {baseDir}/requirements.txt
 复制此清单，逐项勾选进度：
 
 ```
-Talon-Trade 执行进度：
+Quant-Trade 执行进度：
 - [ ] 步骤 0：加载配置（config.yaml, .env），确定执行参数
 - [ ] 步骤 1：下载/更新历史数据（首次全量，后续增量）
 - [ ] 步骤 2：运行 RPS 选股，识别候选股票

@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent
-SKILL_SCRIPTS = PROJECT_ROOT / "skills" / "talon-trade" / "scripts"
+SKILL_SCRIPTS = PROJECT_ROOT / "skills" / "quant-trade" / "scripts"
 
 def run_cmd(cmd, description):
     print(f"\n=== {description} ===")

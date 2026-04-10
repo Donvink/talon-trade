@@ -8,12 +8,12 @@ from pathlib import Path
 # 当前文件: scripts/core/config.py
 SCRIPT_DIR = Path(__file__).parent                    # scripts/core/
 SCRIPTS_DIR = SCRIPT_DIR.parent                       # scripts/
-SKILL_ROOT = SCRIPTS_DIR.parent                       # skills/talon-trade/
-PROJECT_ROOT = SKILL_ROOT.parent.parent               # talon-trade/（项目根）
+SKILL_ROOT = SCRIPTS_DIR.parent                       # skills/quant-trade/
+PROJECT_ROOT = SKILL_ROOT.parent.parent               # quant-trade/（项目根）
 
 # ----------------------------- 数据目录 -----------------------------
-# 优先使用环境变量，否则使用项目内 data/talon_trade
-DATA_ROOT = Path(os.getenv('TALON_DATA_ROOT', PROJECT_ROOT / 'data' / 'talon_trade'))
+# 优先使用环境变量，否则使用项目内 data/quant_trade
+DATA_ROOT = Path(os.getenv('QUANT_DATA_ROOT', PROJECT_ROOT / 'data' / 'quant_trade'))
 
 DB_PATH = DATA_ROOT / "db" / "market_data.db"
 LOG_DIR = DATA_ROOT / "logs"

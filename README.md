@@ -1,8 +1,8 @@
-# 🦞 Talon-Trade
+# 🦞 Quant-Trade
 
 A quantitative trading system for US stocks based on RPS (Relative Price Strength) multi-factor selection. Supports backtesting, paper trading, and live trading with Interactive Brokers, featuring comprehensive position management and risk control.
 
-[中文版](./README-zh.md) | [Documentation](./skills/talon-trade/SKILL.md)
+[中文版](./README-zh.md) | [Documentation](./skills/quant-trade/SKILL.md)
 
 ## ✨ Features
 
@@ -43,7 +43,7 @@ A quantitative trading system for US stocks based on RPS (Relative Price Strengt
 ## 📁 Directory Structure
 
 ```
-talon-trade/
+quant-trade/
 ├── README.md
 ├── README-zh.md
 ├── LICENSE
@@ -52,7 +52,7 @@ talon-trade/
 │   ├── equity_curve.png
 │   └── monthly_returns.png
 ├── data/                         # Data storage
-│   └── talon_trade/
+│   └── quant_trade/
 │       ├── db/
 │       │   └── market_data.db
 │       ├── logs/
@@ -63,7 +63,7 @@ talon-trade/
 │   ├── test_ibapi.py
 │   └── test_ibsync.py
 └── skills/
-    └── talon-trade/
+    └── quant-trade/
         ├── SKILL.md
         ├── SKILL-zh.md
         ├── config.yaml
@@ -97,8 +97,8 @@ talon-trade/
 ### 1. Environment Setup
 
 ```bash
-git clone https://github.com/yourname/talon-trade.git
-cd talon-trade
+git clone https://github.com/yourname/quant-trade.git
+cd quant-trade
 
 conda create -n openclaw python=3.10 -y
 conda activate openclaw
@@ -108,7 +108,7 @@ pip install -r requirements.txt
 
 ### 2. Configuration
 
-Edit `skills/talon-trade/config.yaml`:
+Edit `skills/quant-trade/config.yaml`:
 
 ```yaml
 risk:
@@ -139,7 +139,7 @@ commission: 0.001
 ### 3. Download Historical Data
 
 ```bash
-cd skills/talon-trade/scripts
+cd skills/quant-trade/scripts
 python main.py --step update
 ```
 
@@ -169,7 +169,7 @@ Set up cron job (runs after market close):
 ```bash
 crontab -e
 # Add the following line (runs at 04:30 Monday-Friday)
-30 4 * * 1-5 cd /path/to/talon-trade/skills/talon-trade/scripts && conda activate openclaw && python main.py --step all >> logs/daily.log 2>&1
+30 4 * * 1-5 cd /path/to/quant-trade/skills/quant-trade/scripts && conda activate openclaw && python main.py --step all >> logs/daily.log 2>&1
 ```
 
 ## 📖 Command Reference

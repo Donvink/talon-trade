@@ -1,8 +1,8 @@
-# 🦞 Talon-Trade 美股量化交易系统
+# 🦞 Quant-Trade 美股量化交易系统
 
 基于 RPS（相对强度）的多因子选股与自动化交易系统，专为美股市场设计。支持历史回测、模拟盘交易、实盘交易，并提供完整的仓位管理与风控机制。
 
-[English](./README.md) | [使用文档](./skills/talon-trade/SKILL-zh.md)
+[English](./README.md) | [使用文档](./skills/quant-trade/SKILL-zh.md)
 
 ## ✨ 核心特性
 
@@ -43,7 +43,7 @@
 ## 📁 目录结构
 
 ```
-talon-trade/
+quant-trade/
 ├── README.md
 ├── README-zh.md
 ├── LICENSE
@@ -52,7 +52,7 @@ talon-trade/
 │   ├── equity_curve.png
 │   └── monthly_returns.png
 ├── data/                         # 数据存储
-│   └── talon_trade/
+│   └── quant_trade/
 │       ├── db/
 │       │   └── market_data.db
 │       ├── logs/
@@ -63,7 +63,7 @@ talon-trade/
 │   ├── test_ibapi.py
 │   └── test_ibsync.py
 └── skills/
-    └── talon-trade/
+    └── quant-trade/
         ├── SKILL.md
         ├── SKILL-zh.md
         ├── config.yaml
@@ -98,8 +98,8 @@ talon-trade/
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourname/talon-trade.git
-cd talon-trade
+git clone https://github.com/yourname/quant-trade.git
+cd quant-trade
 
 # 创建 conda 环境
 conda create -n openclaw python=3.10 -y
@@ -111,7 +111,7 @@ pip install -r requirements.txt
 
 ### 2. 配置
 
-编辑 `skills/talon-trade/config.yaml`：
+编辑 `skills/quant-trade/config.yaml`：
 
 ```yaml
 # 风险参数
@@ -146,7 +146,7 @@ commission: 0.001     # 手续费率 0.1%
 ### 3. 下载历史数据
 
 ```bash
-cd skills/talon-trade/scripts
+cd skills/quant-trade/scripts
 python main.py --step update
 ```
 
@@ -176,7 +176,7 @@ python main.py --step trade
 ```bash
 crontab -e
 # 添加以下行（周一至周五 04:30 运行）
-30 4 * * 1-5 cd /path/to/talon-trade/skills/talon-trade/scripts && conda activate openclaw && python main.py --step all >> logs/daily.log 2>&1
+30 4 * * 1-5 cd /path/to/quant-trade/skills/quant-trade/scripts && conda activate openclaw && python main.py --step all >> logs/daily.log 2>&1
 ```
 
 ## 📖 命令说明

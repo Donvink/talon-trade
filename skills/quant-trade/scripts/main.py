@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-talon-trade 一键交易主脚本
+quant-trade 一键交易主脚本
 功能：
 - 下载/更新历史数据
 - 运行RPS选股
@@ -50,7 +50,7 @@ from trading.stop_loss_monitor import monitor_and_execute as run_stop_loss
 from analysis.backtest import backtest
 
 # 设置日志
-log_file = LOG_DIR / f"talon_trade_{datetime.now().strftime('%Y%m%d')}.log"
+log_file = LOG_DIR / f"quant_trade_{datetime.now().strftime('%Y%m%d')}.log"
 log_file.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
@@ -271,7 +271,7 @@ def run_backtest():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Talon-Trade 一键交易流程")
+    parser = argparse.ArgumentParser(description="Quant-Trade 一键交易流程")
     parser.add_argument("--step", choices=['all', 'update', 'screen', 'trade', 'monitor', 'backtest'],
                         default='all', help="执行步骤")
     parser.add_argument("--dry-run", action="store_true", help="模拟模式")
@@ -336,7 +336,7 @@ def main():
         sys.exit(1)
     finally:
         dm.close()
-        logger.info("talon-trade 流程结束")
+        logger.info("quant-trade 流程结束")
 
 
 if __name__ == "__main__":

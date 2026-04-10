@@ -56,5 +56,5 @@ Name: count, dtype: int64
 Freq: ME, dtype: float64
 
 
-交易记录已保存至: /mnt/d/projects/talon-trade/data/talon_trade/logs/trades.csv
-图表已保存至: /mnt/d/projects/talon-trade/data/talon_trade/logs/equity_curve.png 和 /mnt/d/projects/talon-trade/data/talon_trade/logs/monthly_returns.png
+交易记录已保存至: /mnt/d/projects/quant-trade/data/quant_trade/logs/trades.csv
+图表已保存至: /mnt/d/projects/quant-trade/data/quant_trade/logs/equity_curve.png 和 /mnt/d/projects/quant-trade/data/quant_trade/logs/monthly_returns.png

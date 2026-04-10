@@ -1,19 +1,19 @@
 ---
-name: talon-trade
+name: quant-trade
 description: US stock quantitative trading system based on RPS (Relative Price Strength) multi-factor selection, supporting backtesting, paper trading, and live trading with Interactive Brokers
 version: 1.0.0
 metadata:
   openclaw:
-    homepage: https://github.com/yourname/talon-trade
+    homepage: https://github.com/yourname/quant-trade
     requires:
       anyBins:
         - python3
         - python
 ---
 
-# 🦞 Talon-Trade
+# 🦞 Quant-Trade
 
-👉 **[GitHub Repository](https://github.com/yourname/talon-trade)**
+👉 **[GitHub Repository](https://github.com/yourname/quant-trade)**
 
 ## Language
 
@@ -153,7 +153,7 @@ Check items: Python version | Dependencies | Database connectivity | IBKR connec
 Copy this checklist and check items as you progress:
 
 ```
-Talon-Trade Execution Progress:
+Quant-Trade Execution Progress:
 - [ ] Step 0: Load preferences (config.yaml, .env), determine execution parameters
 - [ ] Step 1: Download/update historical data (first-time full download, then incremental)
 - [ ] Step 2: Run RPS screener to identify candidate stocks
