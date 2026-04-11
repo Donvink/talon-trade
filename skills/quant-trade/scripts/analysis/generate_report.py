@@ -80,8 +80,8 @@ def plot_monthly_returns(monthly_returns):
 
 def main():
     # 回测参数（可根据需要修改）
-    # symbols = get_sp500_symbols()
-    symbols = get_large_cap_pool()#[:20]
+    symbols = get_sp500_symbols()
+    # symbols = get_large_cap_pool()#[:20]
     start_date = "2024-04-01"
     end_date = "2026-03-31"
     initial_capital = 100000

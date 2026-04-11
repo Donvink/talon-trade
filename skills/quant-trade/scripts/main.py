@@ -267,7 +267,8 @@ def execute_trades(candidates, dry_run=False):
 def run_backtest():
     """运行回测复盘（使用当前股票池）"""
     logger.info("开始回测复盘...")
-    symbols = get_stock_pool(force_refresh=False)
+    symbols = get_sp500_symbols(force_refresh=False)
+    # symbols = get_stock_pool(force_refresh=False)
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     initial_capital = 100000

@@ -290,8 +290,8 @@ def backtest(
 
 
 if __name__ == "__main__":
-    # symbols = get_sp500_symbols()
-    symbols = get_large_cap_pool()
+    symbols = get_sp500_symbols()
+    # symbols = get_large_cap_pool()
     start = "2024-01-01"
     end = "2026-03-30"
     trades, final = backtest(symbols, start, end, initial_capital=100000)
