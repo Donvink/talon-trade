@@ -2,9 +2,11 @@
 """
 回测模块：基于 RPS 选股策略，支持动态退出
 仓位管理：等权重仓位 + 总持仓上限 + 每日买入限制
+支持使用历史股票池（消除前视偏差）
 """
 
 import sys
+import json
 import pandas as pd
 import numpy as np
 from datetime import timedelta
@@ -40,29 +42,21 @@ def backtest(
     max_own=None,
     commission=None,
     use_fundamentals=None,
-    return_daily_nav=False
+    return_daily_nav=False,
+    use_historical_pool=False,        # 是否使用历史股票池
+    historical_pool_type='large_cap'  # 历史池类型: 'large_cap', 'all'
 ):
     """
     回测 RPS 选股策略（等权重仓位管理）
-    
+
     参数:
-        stock_pool: list, 股票代码列表
+        stock_pool: list, 静态股票代码列表（当 use_historical_pool=False 时使用）
         start_date: str, 回测起始日期 'YYYY-MM-DD'
         end_date: str, 回测结束日期 'YYYY-MM-DD'
         initial_capital: float, 初始资金
-        rps_threshold: int, RPS 阈值
-        rps_periods: list, RPS 周期列表
-        stop_loss_pct: float, 固定止损百分比
-        take_profit_pct: float, 止盈百分比
-        trailing_stop_pct: float, 移动止损回撤百分比
-        max_hold_days: int, 最大持有天数
-        min_hold_days: int, 最小持有天数
-        use_macd_sell: bool, 是否使用 MACD 死叉卖出
-        max_buy: int, 每日最多买入数量
-        max_own: int, 总持仓上限
-        commission: float, 手续费率
-        use_fundamentals: bool, 是否使用基本面
-        return_daily_nav: bool, 是否返回每日净值
+        ... 其他参数 ...
+        use_historical_pool: bool, 是否使用历史股票池（消除前视偏差）
+        historical_pool_type: str, 历史池类型，如 'large_cap', 'all'
     """
     # 使用配置文件中的默认值
     rps_threshold = rps_threshold if rps_threshold is not None else RPS_THRESHOLD
@@ -85,21 +79,45 @@ def backtest(
     portfolio_value = initial_capital
     daily_nav = []
 
-    # 预加载所有股票数据
+    # 预加载所有股票数据（从数据库获取全量，避免重复读库）
+    print("正在加载全量股票数据...")
+    all_symbols = dm.get_all_symbols()  # 需要 DataManager 实现该方法
+    if not all_symbols:
+        all_symbols = stock_pool  # 降级
     stock_data = {}
-    for sym in stock_pool:
+    for sym in all_symbols:
         df = dm.get_data(sym, start=start_date, end=end_date)
         if len(df) >= max(rps_periods):
             stock_data[sym] = df
     if not stock_data:
         raise ValueError("No stock data available for the given period.")
 
+    # 辅助函数：获取指定日期的股票池
+    def get_daily_pool(date):
+        if use_historical_pool:
+            pool = dm.get_historical_pool(date.strftime('%Y-%m-%d'), historical_pool_type)
+            if pool is not None:
+                # 只保留在 stock_data 中存在的股票
+                return [sym for sym in pool if sym in stock_data]
+            else:
+                # 降级：使用静态池
+                print(f"警告: {date.date()} 无历史池，使用静态池")
+                return [sym for sym in stock_pool if sym in stock_data]
+        else:
+            return [sym for sym in stock_pool if sym in stock_data]
+
     progress = tqdm(date_range, desc="回测进度") if 'tqdm' in sys.modules else date_range
 
     for current_date in progress:
-        # 1. 计算当日所有股票的 RPS 和评分
+        # 获取当日有效的股票池
+        active_pool = get_daily_pool(current_date)
+        if not active_pool:
+            continue
+
+        # 1. 计算当日有效股票池的 RPS 和评分
         returns_dict = {}
-        for sym, df in stock_data.items():
+        for sym in active_pool:
+            df = stock_data[sym]
             df_cut = df[df.index <= current_date]
             if len(df_cut) < max(rps_periods):
                 continue
@@ -109,7 +127,7 @@ def backtest(
         scores = {}
         if returns_dict:
             rps_all = calc_rps_for_all(returns_dict)
-            for sym in stock_pool:
+            for sym in active_pool:
                 if sym not in rps_all:
                     continue
                 rps_scores = rps_all[sym]
@@ -290,8 +308,10 @@ def backtest(
 
 
 if __name__ == "__main__":
+    # 示例：使用静态标普500池（默认）
     symbols = get_sp500_symbols()
-    # symbols = get_large_cap_pool()
+    # 若要使用历史大市值池（需要先保存每日快照），可调用：
+    # trades, final = backtest(symbols, start, end, use_historical_pool=True, historical_pool_type='large_cap')
     start = "2024-01-01"
     end = "2026-03-30"
     trades, final = backtest(symbols, start, end, initial_capital=100000)

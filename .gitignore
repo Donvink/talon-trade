@@ -11,6 +11,7 @@ data/
 logs/
 env.json
 **/config.yaml
+cache/
 
 # Distribution / packaging
 .Python

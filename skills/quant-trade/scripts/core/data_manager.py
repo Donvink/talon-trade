@@ -5,13 +5,14 @@
 保存所有字段：open, high, low, close, adj_close, volume, dividends, split_ratio
 """
 
+import json
 import sqlite3
 import pandas as pd
 import yfinance as yf
 import requests
 from datetime import datetime, timedelta
 from pathlib import Path
-from core.config import DB_PATH, DATA_SOURCE, POLYGON_API_KEY
+from core.config import DB_PATH, DATA_SOURCE, POLYGON_API_KEY, WAREHOUSE_DIR
 
 class DataManager:
     def __init__(self):
@@ -51,6 +52,43 @@ class DataManager:
             )
         """)
         self._add_missing_columns()
+
+         # 每日快照表（全市场行情快照）
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS daily_snapshot (
+                date TEXT,
+                symbol TEXT,
+                open REAL,
+                high REAL,
+                low REAL,
+                close REAL,
+                adj_close REAL,
+                volume INTEGER,
+                PRIMARY KEY (date, symbol)
+            )
+        """)
+        
+        # 股票池快照表
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS pool_snapshot (
+                date TEXT,
+                pool_type TEXT,
+                symbols TEXT,
+                metadata TEXT,
+                PRIMARY KEY (date, pool_type)
+            )
+        """)
+        
+        # 历史市值表
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS historical_market_cap (
+                symbol TEXT,
+                date TEXT,
+                market_cap REAL,
+                PRIMARY KEY (symbol, date)
+            )
+        """)
+        
         self.conn.commit()
 
     def _add_missing_columns(self):
@@ -263,6 +301,45 @@ class DataManager:
                 'dividend_yield': row[4]
             }
         return None
+    
+    def get_all_symbols(self):
+        """获取数据库中所有出现过股票代码"""
+        cursor = self.conn.execute("SELECT DISTINCT symbol FROM daily")
+        return [row[0] for row in cursor.fetchall()]
+    
+    def save_daily_snapshot(self, date: str, df: pd.DataFrame):
+        """保存当日全市场行情快照（Parquet）"""
+        file_path = WAREHOUSE_DIR / f"{date}.parquet"
+        df.to_parquet(file_path, index=False)
+    
+    def save_pool_snapshot(self, date: str, pool_type: str, symbols: list, metadata: dict = None):
+        """保存股票池快照"""
+        conn = self.conn
+        conn.execute("""
+            INSERT OR REPLACE INTO pool_snapshot (date, pool_type, symbols, metadata)
+            VALUES (?, ?, ?, ?)
+        """, (date, pool_type, json.dumps(symbols), json.dumps(metadata) if metadata else None))
+        conn.commit()
+    
+    def get_historical_pool(self, date: str, pool_type: str) -> list:
+        """获取历史某天的股票池"""
+        cursor = self.conn.execute(
+            "SELECT symbols FROM pool_snapshot WHERE date <= ? AND pool_type = ? ORDER BY date DESC LIMIT 1",
+            (date, pool_type)
+        )
+        row = cursor.fetchone()
+        if row:
+            return json.loads(row[0])
+        return None
+    
+    def get_historical_market_cap(self, symbol: str, date: str) -> float:
+        """获取历史某天的市值（需要预先填充历史市值表）"""
+        cursor = self.conn.execute(
+            "SELECT market_cap FROM historical_market_cap WHERE symbol = ? AND date <= ? ORDER BY date DESC LIMIT 1",
+            (symbol, date)
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
 
     def close(self):
         self.conn.close()

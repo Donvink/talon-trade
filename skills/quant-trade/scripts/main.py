@@ -22,6 +22,7 @@ import json
 import sqlite3
 from pathlib import Path
 from datetime import datetime, timedelta
+import pandas as pd
 
 # SCRIPT_DIR = Path(__file__).parent
 # sys.path.insert(0, str(SCRIPT_DIR))
@@ -91,6 +92,36 @@ def update_daily(dm, symbols):
     dm.daily_update(symbols)
     logger.info("每日更新完成")
 
+def save_daily_warehouse(dm, symbols, candidates):
+    """保存每日数据仓库快照"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # 1. 保存全市场行情快照（需要先获取当日所有股票数据）
+    all_data = []
+    for sym in symbols:
+        df = dm.get_data(sym, end=today)
+        if not df.empty and df.index[-1].strftime('%Y-%m-%d') == today:
+            row = df.iloc[-1].to_dict()
+            row['symbol'] = sym
+            row['date'] = today
+            all_data.append(row)
+    if all_data:
+        df_snapshot = pd.DataFrame(all_data)
+        dm.save_daily_snapshot(today, df_snapshot)
+    
+    # 2. 保存全市场股票池
+    dm.save_pool_snapshot(today, 'all', symbols)
+    
+    # 3. 保存大市值股票池（如果使用）
+    if USE_LARGE_CAP:
+        large_cap_symbols = get_stock_pool(force_refresh=False)
+        dm.save_pool_snapshot(today, 'large_cap', large_cap_symbols, 
+                              metadata={'min_cap_b': MIN_MARKET_CAP_BILLION})
+    
+    # 4. 保存RPS候选池
+    if candidates:
+        dm.save_pool_snapshot(today, 'rps_candidates', candidates,
+                              metadata={'rps_threshold': RPS_THRESHOLD, 'rps_periods': RPS_PERIODS})
 
 def screen_stocks():
     """运行RPS选股，返回候选列表"""
@@ -337,6 +368,7 @@ def main():
             candidates = screen_stocks()
             with open(CACHE_DIR / "latest_candidates.txt", 'w') as f:
                 f.write('\n'.join(candidates))
+            save_daily_warehouse(dm, symbols, candidates)
         else:
             if args.step == 'trade':
                 cand_file = CACHE_DIR / "latest_candidates.txt"
