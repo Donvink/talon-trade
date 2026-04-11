@@ -12,10 +12,11 @@ from pathlib import Path
 from joblib import Parallel, delayed
 
 from backtest import backtest
-from core.stock_pool import get_sp500_symbols
+from core.stock_pool import get_sp500_symbols, get_large_cap_pool
 from core.config import CACHE_DIR
 
-STOCK_POOL = get_sp500_symbols()[:30]
+# STOCK_POOL = get_sp500_symbols()[:30]
+STOCK_POOL = get_large_cap_pool()[:30]
 
 def objective(params):
     """目标函数：运行回测并返回总收益率"""

@@ -37,7 +37,7 @@ def connect_ib(host=None, port=None, client_id=None, timeout=None):
         return ib
     except Exception as e:
         print(json.dumps({"error": f"Failed to connect: {str(e)}"}))
-        sys.exit(1)
+        # sys.exit(1)
 
 
 def get_ib():

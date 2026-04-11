@@ -8,13 +8,14 @@ import sys
 from datetime import datetime
 from core.config import RPS_THRESHOLD, RPS_PERIODS, CACHE_DIR
 from core.data_manager import DataManager
-from core.stock_pool import get_sp500_symbols
+from core.stock_pool import get_sp500_symbols, get_large_cap_pool
 from core.rps_calculator import calc_returns, calc_rps_for_all
 from core.factors import score_stock
 
 def main():
     dm = DataManager()
-    symbols = get_sp500_symbols()
+    # symbols = get_sp500_symbols()
+    symbols = get_large_cap_pool()
     print(f"股票池大小: {len(symbols)}")
 
     # 计算每只股票的涨幅

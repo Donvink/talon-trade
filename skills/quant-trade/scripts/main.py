@@ -38,12 +38,13 @@ def setup_path():
 setup_path()
 
 from core.config import (
-    LOG_DIR, RPS_THRESHOLD, RPS_PERIODS,
+    LOG_DIR, RPS_THRESHOLD, RPS_PERIODS, TIKERS_DIR,
     MAX_BUY, MAX_OWN, COMMISSION,
     IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID, CACHE_DIR
 )
 from core.data_manager import DataManager
-from core.stock_pool import get_sp500_symbols
+from core.stock_pool import get_sp500_symbols, get_large_cap_pool
+from core.ticker_fetcher import get_all_tickers
 from analysis.screener import main as run_screener
 from trading.ibkr_client import execute_order, connect_ib, get_account_cash
 from trading.stop_loss_monitor import monitor_and_execute as run_stop_loss
@@ -61,6 +62,20 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# 全局股票池（可配置使用标普500或大市值全市场）
+USE_LARGE_CAP = True  # True: 市值>50亿美元全市场, False: 标普500
+MIN_MARKET_CAP_BILLION = 5  # 最小市值（十亿美元）
+
+
+def get_stock_pool(force_refresh=False):
+    """获取当前使用的股票池"""
+    if USE_LARGE_CAP:
+        logger.info(f"使用大市值股票池（市值 > {MIN_MARKET_CAP_BILLION}B）")
+        return get_large_cap_pool(min_market_cap_billion=MIN_MARKET_CAP_BILLION, force_refresh=force_refresh)
+    else:
+        logger.info("使用标普500股票池")
+        return get_sp500_symbols(force_refresh=force_refresh)
 
 
 def download_history(dm, symbols, years_back=2, force=False):
@@ -97,18 +112,14 @@ def get_current_holdings(ib):
     positions = ib.positions()
     holdings = {}
     for pos in positions:
-        # 使用 marketPrice() 方法（注意括号）
-        # 或者使用 pos.position * pos.contract.last
         try:
-            # 方法1：使用 marketPrice()
             price = pos.marketPrice()
         except AttributeError:
-            # 方法2：从合约获取最新价格
             ticker = ib.reqMktData(pos.contract, '', False, False)
             ib.sleep(0.5)
             price = ticker.last if ticker.last else ticker.bid
             if price is None:
-                price = pos.avgCost  # 降级使用成本价
+                price = pos.avgCost
         holdings[pos.contract.symbol] = pos.position * price
     return holdings
 
@@ -151,7 +162,7 @@ def execute_trades(candidates, dry_run=False):
     if current_holdings_count >= MAX_OWN:
         logger.info(f"当前持仓已达上限 ({current_holdings_count}/{MAX_OWN})，不再买入新股票")
         return
-    
+
     available_slots = MAX_OWN - current_holdings_count
     logger.info(f"当前持仓: {current_holdings_count}/{MAX_OWN}, 还可买入 {available_slots} 只")
 
@@ -169,12 +180,11 @@ def execute_trades(candidates, dry_run=False):
     # 筛选未持仓的候选，并限制数量
     candidates_to_buy = [sym for sym in candidates if sym not in current_holdings]
     candidates_to_buy = candidates_to_buy[:min(MAX_BUY, available_slots)]
-    
+
     if not candidates_to_buy:
         logger.info("所有候选股票已在持仓中或已达买入上限")
         return
 
-    # 计算每个候选的目标买入金额
     buy_needed = {}
     for sym in candidates_to_buy:
         current_value = current_holdings.get(sym, 0)
@@ -255,9 +265,9 @@ def execute_trades(candidates, dry_run=False):
 
 
 def run_backtest():
-    """运行回测复盘"""
+    """运行回测复盘（使用当前股票池）"""
     logger.info("开始回测复盘...")
-    symbols = get_sp500_symbols()
+    symbols = get_stock_pool(force_refresh=False)
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     initial_capital = 100000
@@ -290,10 +300,26 @@ def main():
         return
 
     dm = DataManager()
-    symbols = get_sp500_symbols(force_refresh=args.force_refresh)
+    # 获取股票池（如果强制刷新则重新获取）
+    symbols = get_stock_pool(force_refresh=args.force_refresh)
 
     try:
+        # 数据更新步骤
         if args.step in ('all', 'update'):
+            # 先检查并更新全市场股票列表（每周一次）
+            ticker_cache_file = TIKERS_DIR / "all_tickers.csv"
+            need_update_tickers = False
+            if not ticker_cache_file.exists():
+                need_update_tickers = True
+            else:
+                mtime = datetime.fromtimestamp(ticker_cache_file.stat().st_mtime)
+                if (datetime.now() - mtime).days >= 7:
+                    need_update_tickers = True
+            if need_update_tickers:
+                logger.info("全市场股票列表已过期，正在更新...")
+                get_all_tickers(force_refresh=True)
+
+            # 更新行情数据
             conn = sqlite3.connect(dm.db_path)
             cursor = conn.execute("SELECT COUNT(*) FROM daily")
             count = cursor.fetchone()[0]
@@ -305,6 +331,7 @@ def main():
         else:
             logger.info("跳过数据更新步骤")
 
+        # 选股步骤
         if args.step in ('all', 'screen'):
             candidates = screen_stocks()
             with open(CACHE_DIR / "latest_candidates.txt", 'w') as f:
@@ -319,15 +346,21 @@ def main():
                     logger.error("未找到候选列表文件，请先运行选股")
                     sys.exit(1)
 
-        if args.step in ('all', 'trade'):
-            if 'candidates' not in locals():
-                candidates = []
-            execute_trades(candidates, dry_run=args.dry_run)
-
+        # 止损监控
         if args.step in ('all', 'monitor'):
             logger.info("运行止损监控检查")
             run_stop_loss()
 
+        # 交易步骤
+        if args.step in ('all', 'trade'):
+            if 'candidates' not in locals():
+                candidates = []
+            try:
+                execute_trades(candidates, dry_run=args.dry_run)
+            except Exception as e:
+                logger.error(f"交易执行失败: {e}，继续执行后续步骤")
+
+        # 回测步骤
         if args.step in ('all', 'backtest'):
             run_backtest()
 

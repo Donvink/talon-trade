@@ -18,7 +18,7 @@ from core.config import (
     COMMISSION, LOG_DIR
 )
 from core.data_manager import DataManager
-from core.stock_pool import get_sp500_symbols
+from core.stock_pool import get_sp500_symbols, get_large_cap_pool
 from core.rps_calculator import calc_returns, calc_rps_for_all
 from core.factors import score_stock
 
@@ -290,7 +290,8 @@ def backtest(
 
 
 if __name__ == "__main__":
-    symbols = get_sp500_symbols()
+    # symbols = get_sp500_symbols()
+    symbols = get_large_cap_pool()
     start = "2024-01-01"
     end = "2026-03-30"
     trades, final = backtest(symbols, start, end, initial_capital=100000)

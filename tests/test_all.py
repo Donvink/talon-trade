@@ -17,7 +17,7 @@ def run_cmd(cmd, description):
 
 if __name__ == "__main__":
     # 1. 下载少量数据
-    run_cmd('python -c "import sys; sys.path.insert(0, str(SKILL_SCRIPTS)); from data_manager import DataManager; from stock_pool import get_sp500_symbols; dm = DataManager(); dm.download_full_history(get_sp500_symbols()[:5], years_back=1); dm.close()"', "数据下载")
+    run_cmd('python -c "import sys; sys.path.insert(0, str(SKILL_SCRIPTS)); from data_manager import DataManager; from stock_pool import get_sp500_symbols, get_large_cap_pool; dm = DataManager(); dm.download_full_history(get_sp500_symbols()[:5], years_back=1); dm.close()"', "数据下载")
     # 2. 选股
     run_cmd(f'python {SKILL_SCRIPTS}/screener.py', "RPS选股")
     # 3. 回测

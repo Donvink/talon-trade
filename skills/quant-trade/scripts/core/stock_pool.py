@@ -3,6 +3,7 @@
 股票池管理：从Wikipedia获取标普500成分股，存入SQLite
 """
 
+from typing import List
 import pandas as pd
 import sqlite3
 import requests
@@ -11,10 +12,13 @@ import random
 from pathlib import Path
 from datetime import datetime
 from core.config import DB_PATH, CACHE_DIR
+from core.ticker_fetcher import get_large_cap_tickers
 
 SP500_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 GITHUB_CSV_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
 LOCAL_CSV = CACHE_DIR / "sp500_components.csv"  # 本地缓存CSV
+
+_LARGE_CAP_CACHE = None
 
 HEADERS_LIST = [
     {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'},
@@ -33,6 +37,13 @@ def _get_conn():
     """)
     conn.commit()
     return conn
+
+def get_large_cap_pool(min_market_cap_billion=5, force_refresh: bool = False) -> List[str]:
+    """获取市值大于 50 亿美元的股票池（带缓存）"""
+    global _LARGE_CAP_CACHE
+    if force_refresh or _LARGE_CAP_CACHE is None:
+        _LARGE_CAP_CACHE = get_large_cap_tickers(min_market_cap_billion=min_market_cap_billion, force_refresh=force_refresh)
+    return _LARGE_CAP_CACHE
 
 def _fetch_from_wikipedia(max_retries=3):
     """从Wikipedia获取成分股，带重试和随机User-Agent"""

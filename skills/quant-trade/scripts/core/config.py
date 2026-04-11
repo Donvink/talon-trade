@@ -19,6 +19,7 @@ DB_PATH = DATA_ROOT / "db" / "market_data.db"
 LOG_DIR = DATA_ROOT / "logs"
 CACHE_DIR = DATA_ROOT / "cache"
 BACKTEST_DIR = DATA_ROOT / "backtest"
+TIKERS_DIR = DATA_ROOT / "tickers"
 
 # 确保目录存在
 DATA_ROOT.mkdir(parents=True, exist_ok=True)
@@ -26,6 +27,7 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 BACKTEST_DIR.mkdir(parents=True, exist_ok=True)
+TIKERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ----------------------------- 配置文件 -----------------------------
 CONFIG_FILE = SKILL_ROOT / "config.yaml"

@@ -16,7 +16,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from core.data_manager import DataManager
-from core.stock_pool import get_sp500_symbols
+from core.stock_pool import get_sp500_symbols, get_large_cap_pool
 
 def fetch_fundamentals_for_symbol(symbol):
     """获取单只股票的历史基本面数据，返回 DataFrame"""
@@ -73,7 +73,8 @@ def fetch_fundamentals_for_symbol(symbol):
 
 def main():
     dm = DataManager()
-    symbols = get_sp500_symbols()  # 全量，可先测试前10只
+    # symbols = get_sp500_symbols()
+    symbols = get_large_cap_pool()  # 全量，可先测试前10只
     print(f"开始抓取 {len(symbols)} 只股票的基本面历史数据...")
 
     for sym in symbols:
