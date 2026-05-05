@@ -368,6 +368,8 @@ def main():
             candidates = screen_stocks()
             with open(CACHE_DIR / "latest_candidates.txt", 'w') as f:
                 f.write('\n'.join(candidates))
+            with open(CACHE_DIR / "em_candidates.txt", 'w') as f:
+                f.write(','.join(candidates))
             save_daily_warehouse(dm, symbols, candidates)
         else:
             if args.step == 'trade':
