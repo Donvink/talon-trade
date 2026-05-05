@@ -41,16 +41,26 @@ def main():
         # 要求所有周期RPS均大于阈值
         if all(rps_scores.get(f'{p}d_rps', 0) >= RPS_THRESHOLD for p in RPS_PERIODS):
             df = dm.get_data(sym)
+            if len(df) < RPS_PERIODS[0]:   # 至少要有RPS_PERIODS[0]天数据用于计算均额
+                continue
             current_date = df.index[-1].strftime('%Y-%m-%d')
             total_score = score_stock(sym, df, rps_scores, as_of_date=current_date)
+            # 计算前一日成交额（单位：美元）
+            latest_turnover = df['volume'].iloc[-1] * df['close'].iloc[-1]
+            # 或计算5日平均成交额
+            avg_5d_turnover = (df['volume'] * df['close']).rolling(RPS_PERIODS[0]).mean().iloc[-1]
             candidates.append({
                 'symbol': sym,
                 'rps_scores': rps_scores,
-                'total_score': total_score
+                'total_score': total_score,
+                'turnover': latest_turnover,
+                'turnover_avg': avg_5d_turnover
             })
 
     # 按总分排序
     candidates.sort(key=lambda x: x['total_score'], reverse=True)
+    # candidates.sort(key=lambda x: x['turnover'], reverse=True)
+    # candidates.sort(key=lambda x: x['turnover_avg'], reverse=True)
 
     result = {
         'date': datetime.now().strftime('%Y-%m-%d'),
