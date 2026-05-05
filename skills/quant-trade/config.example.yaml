@@ -19,6 +19,7 @@ screener:
   max_buy: 3          # 每日最多买入数量
   max_own: 5          # 总持仓上限
   use_fundamentals: false
+  order_by: "total_score"   # 可选: 'turnover', 'turnover_avg', 'total_score'
 
 # IBKR 连接配置
 ibkr:

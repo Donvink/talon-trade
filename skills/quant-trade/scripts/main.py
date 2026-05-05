@@ -40,7 +40,7 @@ setup_path()
 
 from core.config import (
     LOG_DIR, RPS_THRESHOLD, RPS_PERIODS, TIKERS_DIR,
-    MAX_BUY, MAX_OWN, COMMISSION,
+    MAX_BUY, MAX_OWN, COMMISSION, ORDER_BY,
     IBKR_HOST, IBKR_PORT, IBKR_CLIENT_ID, CACHE_DIR
 )
 from core.data_manager import DataManager
@@ -307,7 +307,8 @@ def run_backtest():
         stock_pool=symbols,
         start_date=start_date,
         end_date=end_date,
-        initial_capital=initial_capital
+        initial_capital=initial_capital,
+        order_by=ORDER_BY,
     )
     logger.info(f"回测完成，初始资金: ${initial_capital:,.2f}，最终资产：${final_value:,.2f}")
 

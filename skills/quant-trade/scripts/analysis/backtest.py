@@ -3,6 +3,7 @@
 回测模块：基于 RPS 选股策略，支持动态退出
 仓位管理：等权重仓位 + 总持仓上限 + 每日买入限制
 支持使用历史股票池（消除前视偏差）
+选股逻辑直接调用 screener 模块，保证与实盘同步
 """
 
 import sys
@@ -16,13 +17,12 @@ import pandas_ta as ta
 from core.config import (
     RPS_THRESHOLD, RPS_PERIODS,
     STOP_LOSS_PCT, TAKE_PROFIT_PCT, TRAILING_STOP_PCT,
-    MAX_HOLD_DAYS, MIN_HOLD_DAYS, MAX_BUY, MAX_OWN, USE_FUNDAMENTALS,
-    COMMISSION, LOG_DIR
+    MAX_HOLD_DAYS, MIN_HOLD_DAYS, MAX_BUY, MAX_OWN,
+    COMMISSION, LOG_DIR, ORDER_BY
 )
 from core.data_manager import DataManager
 from core.stock_pool import get_sp500_symbols, get_large_cap_pool
-from core.rps_calculator import calc_returns, calc_rps_for_all
-from core.factors import score_stock
+from analysis.screener import get_candidates_for_date
 
 
 def backtest(
@@ -41,23 +41,11 @@ def backtest(
     max_buy=None,
     max_own=None,
     commission=None,
-    use_fundamentals=None,
     return_daily_nav=False,
-    use_historical_pool=False,        # 是否使用历史股票池
-    historical_pool_type='large_cap'  # 历史池类型: 'large_cap', 'all'
+    use_historical_pool=False,
+    historical_pool_type='large_cap',
+    order_by='total_score'       # 选股排序依据，与 screener 保持一致
 ):
-    """
-    回测 RPS 选股策略（等权重仓位管理）
-
-    参数:
-        stock_pool: list, 静态股票代码列表（当 use_historical_pool=False 时使用）
-        start_date: str, 回测起始日期 'YYYY-MM-DD'
-        end_date: str, 回测结束日期 'YYYY-MM-DD'
-        initial_capital: float, 初始资金
-        ... 其他参数 ...
-        use_historical_pool: bool, 是否使用历史股票池（消除前视偏差）
-        historical_pool_type: str, 历史池类型，如 'large_cap', 'all'
-    """
     # 使用配置文件中的默认值
     rps_threshold = rps_threshold if rps_threshold is not None else RPS_THRESHOLD
     rps_periods = rps_periods if rps_periods is not None else RPS_PERIODS
@@ -69,21 +57,20 @@ def backtest(
     max_hold_days = max_hold_days if max_hold_days is not None else MAX_HOLD_DAYS
     min_hold_days = min_hold_days if min_hold_days is not None else MIN_HOLD_DAYS
     commission = commission if commission is not None else COMMISSION
-    use_fundamentals = use_fundamentals if use_fundamentals is not None else USE_FUNDAMENTALS
 
     dm = DataManager()
     date_range = pd.date_range(start_date, end_date, freq='B')
-    positions = {}      # {symbol: (buy_date, buy_price, shares, buy_score)}
+    positions = {}
     trades = []
     cash = initial_capital
     portfolio_value = initial_capital
     daily_nav = []
 
-    # 预加载所有股票数据（从数据库获取全量，避免重复读库）
+    # 预加载所有股票数据
     print("正在加载全量股票数据...")
-    all_symbols = dm.get_all_symbols()  # 需要 DataManager 实现该方法
+    all_symbols = dm.get_all_symbols()
     if not all_symbols:
-        all_symbols = stock_pool  # 降级
+        all_symbols = stock_pool
     stock_data = {}
     for sym in all_symbols:
         df = dm.get_data(sym, start=start_date, end=end_date)
@@ -97,10 +84,8 @@ def backtest(
         if use_historical_pool:
             pool = dm.get_historical_pool(date.strftime('%Y-%m-%d'), historical_pool_type)
             if pool is not None:
-                # 只保留在 stock_data 中存在的股票
                 return [sym for sym in pool if sym in stock_data]
             else:
-                # 降级：使用静态池
                 print(f"警告: {date.date()} 无历史池，使用静态池")
                 return [sym for sym in stock_pool if sym in stock_data]
         else:
@@ -114,37 +99,19 @@ def backtest(
         if not active_pool:
             continue
 
-        # 1. 计算当日有效股票池的 RPS 和评分
-        returns_dict = {}
-        for sym in active_pool:
-            df = stock_data[sym]
-            df_cut = df[df.index <= current_date]
-            if len(df_cut) < max(rps_periods):
-                continue
-            ret = calc_returns(df_cut)
-            returns_dict[sym] = ret
+        # 1. 使用统一的选股接口获取候选列表（按指定规则排序）
+        candidate_symbols = get_candidates_for_date(
+            current_date=current_date,
+            stock_data=stock_data,
+            symbols=active_pool,
+            rps_threshold=rps_threshold,
+            rps_periods=rps_periods,
+            max_candidates=None,           # 先获取全部候选，后面再按 max_buy 截取
+            order_by=order_by
+        )
 
-        scores = {}
-        if returns_dict:
-            rps_all = calc_rps_for_all(returns_dict)
-            for sym in active_pool:
-                if sym not in rps_all:
-                    continue
-                rps_scores = rps_all[sym]
-                if all(rps_scores.get(f'{p}d_rps', 0) >= rps_threshold for p in rps_periods):
-                    df = stock_data[sym]
-                    df_cut = df[df.index <= current_date]
-                    if len(df_cut) < max(rps_periods):
-                        continue
-                    current_date_str = current_date.strftime('%Y-%m-%d')
-                    scores[sym] = score_stock(
-                        sym, df_cut, rps_scores,
-                        as_of_date=current_date_str,
-                        use_fundamentals=use_fundamentals
-                    )
-
-        # 2. 卖出检查（动态退出）
-        for sym, (buy_date, buy_price, shares, buy_score) in list(positions.items()):
+        # 2. 卖出检查（动态退出）【与原代码相同】
+        for sym, (buy_date, buy_price, shares, _) in list(positions.items()):
             df = stock_data[sym]
             df_cut = df[df.index <= current_date]
             if df_cut.empty:
@@ -197,20 +164,18 @@ def backtest(
                 current_price = df_cut['adj_close'].iloc[-1]
                 current_holdings[sym] = shares * current_price
 
-        # 计算账户总资产和目标每只股票市值
         total_asset = cash + sum(current_holdings.values())
         target_per_stock = total_asset / max_own
 
-        # 筛选需要买入的候选（未持仓，且不超过 max_buy）
+        # 筛选未持仓的候选，限制数量
         candidates_to_buy = []
-        for sym, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):
+        for sym in candidate_symbols:
             if sym not in positions:
                 candidates_to_buy.append(sym)
             if len(candidates_to_buy) >= max_buy:
                 break
 
         if candidates_to_buy:
-            # 计算每个候选的目标买入金额
             buy_needed = {}
             for sym in candidates_to_buy:
                 current_value = current_holdings.get(sym, 0)
@@ -220,14 +185,12 @@ def backtest(
 
             if buy_needed:
                 total_needed = sum(buy_needed.values())
-                # 现金不足时按比例分配
                 if total_needed > cash:
                     ratio = cash / total_needed
                     buy_amounts = {sym: needed * ratio for sym, needed in buy_needed.items()}
                 else:
                     buy_amounts = buy_needed
 
-                # 按顺序买入
                 for sym, amount in buy_amounts.items():
                     df = stock_data[sym]
                     df_cut = df[df.index <= current_date]
@@ -241,7 +204,7 @@ def backtest(
                     if actual_cost > cash:
                         continue
                     cash -= actual_cost * (1 + commission)
-                    positions[sym] = (current_date, price, shares, scores.get(sym, 0))
+                    positions[sym] = (current_date, price, shares, None)
 
         # 更新当日总资产
         current_value = cash
@@ -308,11 +271,8 @@ def backtest(
 
 
 if __name__ == "__main__":
-    # 示例：使用静态标普500池（默认）
     symbols = get_sp500_symbols()
-    # 若要使用历史大市值池（需要先保存每日快照），可调用：
-    # trades, final = backtest(symbols, start, end, use_historical_pool=True, historical_pool_type='large_cap')
     start = "2024-01-01"
     end = "2026-03-30"
-    trades, final = backtest(symbols, start, end, initial_capital=100000)
+    trades, final = backtest(symbols, start, end, initial_capital=100000, order_by=ORDER_BY)
     print("\n回测完成。")

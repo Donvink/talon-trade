@@ -54,6 +54,7 @@ DEFAULTS = {
         'max_buy': 3,
         'max_own': 5,
         'use_fundamentals': False,
+        'order_by': 'total_score',
     },
     'ibkr': {
         'host': '127.0.0.1',
@@ -103,6 +104,7 @@ RPS_PERIODS = config['screener']['rps_periods']
 MAX_BUY = config['screener']['max_buy']
 MAX_OWN = config['screener']['max_own']
 USE_FUNDAMENTALS = config['screener']['use_fundamentals']
+ORDER_BY = config['screener']['order_by']
 
 # IBKR 参数
 IBKR_HOST = config['ibkr']['host']
@@ -121,7 +123,7 @@ __all__ = [
     'MAX_POSITION_PCT', 'MAX_OPEN_POSITIONS',
     'STOP_LOSS_PCT', 'TAKE_PROFIT_PCT', 'TRAILING_STOP_PCT',
     'MAX_HOLD_DAYS', 'MIN_HOLD_DAYS',
-    'RPS_THRESHOLD', 'RPS_PERIODS', 'MAX_BUY', 'MAX_OWN', 'USE_FUNDAMENTALS',
+    'RPS_THRESHOLD', 'RPS_PERIODS', 'MAX_BUY', 'MAX_OWN', 'USE_FUNDAMENTALS', 'ORDER_BY',
     'IBKR_HOST', 'IBKR_PORT', 'IBKR_CLIENT_ID', 'IBKR_TIMEOUT',
     'DATA_SOURCE', 'POLYGON_API_KEY', 'COMMISSION'
 ]
